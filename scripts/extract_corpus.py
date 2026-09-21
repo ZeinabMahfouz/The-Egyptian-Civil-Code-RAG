@@ -1,18 +1,3 @@
-#!/usr/bin/env python3
-"""
-Extract the Egyptian Civil Code (bilingual AR/EN PDF, side-by-side
-two-column layout) into structured JSON, one record per article.
-
-Why pdfplumber and not pdftotext -layout: -layout preserves the PHYSICAL
-page layout, which for this PDF means English and Arabic text from the
-same row end up on the same output line, interleaved. That defeats a
-line-anchored regex parser. pdfplumber gives per-word bounding boxes, so
-we split each page into two columns by x-position, reconstruct each
-column as its own clean line stream, and align English/Arabic by
-article NUMBER rather than by physical line adjacency.
-
-Requires: pip install pdfplumber
-"""
 import argparse
 import json
 import re
@@ -31,9 +16,7 @@ AR_DIGITS = "٠١٢٣٤٥٦٧٨٩"
 EN_DIGITS = "0123456789"
 AR2EN = str.maketrans(AR_DIGITS, EN_DIGITS)
 
-# Core Arabic letter block. Deliberately excludes \u0660-\u0669 (Arabic-Indic
-# digits), which are weak-LTR and must NOT be character-reversed -- doing so
-# would silently turn ٤٣ (43) into ٣٤ (34).
+
 RE_ARABIC_LETTER = re.compile(r"[\u0621-\u064A]")
 
 
@@ -59,10 +42,7 @@ def fix_arabic_word(token: str) -> str:
 # ---------------------------------------------------------------------------
 RE_AR_ARTICLE = re.compile(r"^\s*مادة\b[\s\)\(\.,،]*([٠-٩]+)[\s\)\(\.,،]*$")
 RE_EN_ARTICLE = re.compile(r"^\s*Article\s*(\d+)\s*$")
-# Fallback for the case where the header row got fused with the article's
-# first body line (e.g. "Article 714 The mandate comes to an end by the").
-# Only ever tried for numbers the Arabic stream already confirmed exist
-# and the strict regex above didn't find -- see parse_english_stream.
+
 RE_EN_ARTICLE_LOOSE = re.compile(r"^\s*A?rticle\s*(\d+)\b\s*(.*)$")
 
 RE_REPEAL_RANGE = re.compile(r"المواد\s+من\s+([٠-٩]+)\s+إلى\s+([٠-٩]+)")
@@ -70,13 +50,6 @@ RE_REPEAL_WORD = re.compile(r"ملغاة|ألغيت|ألغي|repealed|abolished"
 RE_BIS = re.compile(r"مكرر")
 
 _MAXHEAD = 60
-# Optional leading "ال" (definite article) -- most headings use it
-# ("الباب الأول"), but the unnumbered preliminary heading is written
-# without it ("باب تمهيدي", not "الباب تمهيدي") since it's grammatically
-# indefinite. Without this, that heading was invisible to the parser,
-# which is exactly what let the Law of Promulgation's own "مادة ١"/"مادة ٢"
-# (a different, 2-article enacting decree that precedes the real code
-# text) get parsed as if they were the Civil Code's real Article 1/2.
 RE_PART = re.compile(r"^\s*(?:ال)?قسم\s")
 RE_BOOK = re.compile(r"^\s*(?:ال)?كتاب\s")
 RE_CHAPTER = re.compile(r"^\s*(?:ال)?باب\s")
