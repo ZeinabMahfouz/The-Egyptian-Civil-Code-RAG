@@ -1,0 +1,28 @@
+schema: '2.0'
+stages:
+  extract_corpus:
+    cmd: python scripts/extract_corpus.py --pdf data/raw/civil_code.pdf --out 
+      data/interim/civil_code.json --topic-overrides 
+      scripts/topic_overrides.json --manual-patches scripts/manual_patches.json
+    deps:
+    - path: data/raw/civil_code.pdf
+      hash: md5
+      md5: 5086ef5f16f15d856278db943e58e948
+      size: 2599703
+    - path: scripts/extract_corpus.py
+      hash: md5
+      md5: aa2a1a376e21bcec10f39ebd125d72a5
+      size: 22918
+    - path: scripts/manual_patches.json
+      hash: md5
+      md5: bc5584ea5c2b001047bbc91a1c996a7f
+      size: 1448
+    - path: scripts/topic_overrides.json
+      hash: md5
+      md5: 8a80554c91d9fca8acb82f023de02f11
+      size: 3
+    outs:
+    - path: data/interim/civil_code.json
+      hash: md5
+      md5: f99065d564dfb814bc595a175cc133ff
+      size: 1300409

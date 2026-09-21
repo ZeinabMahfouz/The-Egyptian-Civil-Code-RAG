@@ -1,0 +1,10 @@
+stages:
+  extract_corpus:
+    cmd: python scripts/extract_corpus.py --pdf data/raw/civil_code.pdf --out data/interim/civil_code.json --topic-overrides scripts/topic_overrides.json --manual-patches scripts/manual_patches.json
+    deps:
+      - scripts/extract_corpus.py
+      - data/raw/civil_code.pdf
+      - scripts/topic_overrides.json
+      - scripts/manual_patches.json
+    outs:
+      - data/interim/civil_code.json
