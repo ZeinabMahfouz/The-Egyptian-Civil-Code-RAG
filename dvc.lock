@@ -11,8 +11,8 @@ stages:
       size: 2599703
     - path: scripts/extract_corpus.py
       hash: md5
-      md5: aa2a1a376e21bcec10f39ebd125d72a5
-      size: 22918
+      md5: e6faa7b6f8fc427a7d34eb13c6257194
+      size: 21217
     - path: scripts/manual_patches.json
       hash: md5
       md5: bc5584ea5c2b001047bbc91a1c996a7f
@@ -26,3 +26,20 @@ stages:
       hash: md5
       md5: f99065d564dfb814bc595a175cc133ff
       size: 1300409
+  validate_corpus:
+    cmd: pytest tests/test_corpus_validation.py -v && touch 
+      data/interim/.validated
+    deps:
+    - path: data/interim/civil_code.json
+      hash: md5
+      md5: f99065d564dfb814bc595a175cc133ff
+      size: 1300409
+    - path: tests/test_corpus_validation.py
+      hash: md5
+      md5: b444de9fdaa89d6119612b16574b6c5b
+      size: 5921
+    outs:
+    - path: data/interim/.validated
+      hash: md5
+      md5: d41d8cd98f00b204e9800998ecf8427e
+      size: 0

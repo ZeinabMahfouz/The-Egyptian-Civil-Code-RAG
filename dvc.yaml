@@ -8,3 +8,11 @@ stages:
       - scripts/manual_patches.json
     outs:
       - data/interim/civil_code.json
+
+  validate_corpus:
+    cmd: pytest tests/test_corpus_validation.py -v && touch data/interim/.validated
+    deps:
+      - data/interim/civil_code.json
+      - tests/test_corpus_validation.py
+    outs:
+      - data/interim/.validated
