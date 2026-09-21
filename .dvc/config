@@ -1,0 +1,4 @@
+[core]
+    remote = storage
+['remote "storage"']
+    url = /home/zeinazozo2026/dvc-storage
