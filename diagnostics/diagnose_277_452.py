@@ -1,4 +1,5 @@
 import sys
+
 sys.path.insert(0, "scripts")
 import extract_corpus as ec  # noqa: E402
 import pdfplumber

@@ -2,7 +2,7 @@ import argparse
 import json
 import re
 import sys
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 import pdfplumber
@@ -163,7 +163,9 @@ class ArArticle:
     page: int
 
 
-def parse_arabic_stream(lines, topic_overrides, errors, warnings, repeal_ranges_found, repeal_placeholders):
+def parse_arabic_stream(
+    lines, topic_overrides, errors, warnings, repeal_ranges_found, repeal_placeholders
+):
     """repeal_placeholders collects (lo, hi, notice_text, book, chapter,
     section, topic, page) tuples. Placeholder insertion into BOTH the
     Arabic and English article dicts happens later, once, after both
@@ -189,15 +191,20 @@ def parse_arabic_stream(lines, topic_overrides, errors, warnings, repeal_ranges_
         if num in articles:
             errors.append(f"[duplicate-ar] article {num} reappears at page {page}")
         articles[num] = ArArticle(
-            text=text, book=current_book_field(), chapter=cur_chapter,
-            section=cur_section, topic=topic_overrides.get(str(num), cur_topic), page=page,
+            text=text,
+            book=current_book_field(),
+            chapter=cur_chapter,
+            section=cur_section,
+            topic=topic_overrides.get(str(num), cur_topic),
+            page=page,
         )
         m = RE_REPEAL_RANGE.search(text)
         if m and RE_REPEAL_WORD.search(text):
             lo, hi = ar_to_int(m.group(1)), ar_to_int(m.group(2))
             repeal_ranges_found.append(f"range {lo}-{hi} in body of article {num}, page {page}")
-            repeal_placeholders.append((lo, hi, text, current_book_field(), cur_chapter,
-                                         cur_section, cur_topic, page))
+            repeal_placeholders.append(
+                (lo, hi, text, current_book_field(), cur_chapter, cur_section, cur_topic, page)
+            )
         num, page, buf = None, None, []
 
     for pg, t in lines:
@@ -212,8 +219,9 @@ def parse_arabic_stream(lines, topic_overrides, errors, warnings, repeal_ranges_
                 mode = "seeking"
             lo, hi = ar_to_int(m.group(1)), ar_to_int(m.group(2))
             repeal_ranges_found.append(f"headerless range {lo}-{hi} at page {pg}: '{t}'")
-            repeal_placeholders.append((lo, hi, t, current_book_field(), cur_chapter,
-                                         cur_section, cur_topic, pg))
+            repeal_placeholders.append(
+                (lo, hi, t, current_book_field(), cur_chapter, cur_section, cur_topic, pg)
+            )
             continue
 
         am = RE_AR_ARTICLE.match(t)
@@ -233,25 +241,29 @@ def parse_arabic_stream(lines, topic_overrides, errors, warnings, repeal_ranges_
 
         if is_heading(RE_PART, t):
             if mode != "seeking":
-                flush(); mode = "seeking"
+                flush()
+                mode = "seeking"
             seen_heading = True
             cur_part, cur_book, cur_chapter, cur_section, cur_topic = t, "", "", "", ""
             continue
         if is_heading(RE_BOOK, t):
             if mode != "seeking":
-                flush(); mode = "seeking"
+                flush()
+                mode = "seeking"
             seen_heading = True
             cur_book, cur_chapter, cur_section, cur_topic = t, "", "", ""
             continue
         if is_heading(RE_CHAPTER, t):
             if mode != "seeking":
-                flush(); mode = "seeking"
+                flush()
+                mode = "seeking"
             seen_heading = True
             cur_chapter, cur_section, cur_topic = t, "", ""
             continue
         if is_heading(RE_SECTION, t):
             if mode != "seeking":
-                flush(); mode = "seeking"
+                flush()
+                mode = "seeking"
             seen_heading = True
             cur_section, cur_topic = t, ""
             continue
@@ -338,9 +350,16 @@ def merge(ar_articles, en_articles, errors):
         ar, en = ar_articles[n], en_articles[n]
         repealed = bool(RE_REPEAL_WORD.search(ar.text)) or bool(RE_REPEAL_WORD.search(en))
         records[n] = ArticleRecord(
-            article_number=n, book=ar.book, chapter=ar.chapter, section=ar.section,
-            topic=ar.topic, text_ar=ar.text, text_en=en, is_repealed=repealed,
-            source_page=ar.page, citation=f"Egyptian Civil Code, Article {n}",
+            article_number=n,
+            book=ar.book,
+            chapter=ar.chapter,
+            section=ar.section,
+            topic=ar.topic,
+            text_ar=ar.text,
+            text_en=en,
+            is_repealed=repealed,
+            source_page=ar.page,
+            citation=f"Egyptian Civil Code, Article {n}",
         )
     return records
 
@@ -357,13 +376,17 @@ def validate(records, errors, warnings, repeal_ranges_found, known_gaps=None):
     if unexplained_missing:
         errors.append(f"Gap(s) in numbering: {sorted(unexplained_missing)}")
     if known_gaps & missing:
-        warnings.append(f"Known/acknowledged gaps (via --known-gaps, NOT validated against "
-                         f"an authoritative source by this script): {sorted(known_gaps & missing)}")
+        warnings.append(
+            f"Known/acknowledged gaps (via --known-gaps, NOT validated against "
+            f"an authoritative source by this script): {sorted(known_gaps & missing)}"
+        )
     expected_total = EXPECTED_MAX_ARTICLE - len(known_gaps & missing)
     if lo != 1 or hi != EXPECTED_MAX_ARTICLE or len(records) != expected_total:
-        errors.append(f"Expected {expected_total} articles ({EXPECTED_MAX_ARTICLE} minus "
-                       f"{len(known_gaps & missing)} acknowledged gap(s)) spanning "
-                       f"1-{EXPECTED_MAX_ARTICLE}; got {len(records)} spanning {lo}-{hi}")
+        errors.append(
+            f"Expected {expected_total} articles ({EXPECTED_MAX_ARTICLE} minus "
+            f"{len(known_gaps & missing)} acknowledged gap(s)) spanning "
+            f"1-{EXPECTED_MAX_ARTICLE}; got {len(records)} spanning {lo}-{hi}"
+        )
     for n, rec in records.items():
         if not rec.text_ar.strip():
             errors.append(f"Article {n}: empty text_ar")
@@ -377,8 +400,10 @@ def validate(records, errors, warnings, repeal_ranges_found, known_gaps=None):
         warnings.append(f"RE_REPEAL_RANGE matched {len(repeal_ranges_found)} time(s):")
         warnings.extend(f"  - {r}" for r in repeal_ranges_found)
     else:
-        errors.append("RE_REPEAL_RANGE matched zero times -- expected >= 2. "
-                       "Repeal detection is likely broken.")
+        errors.append(
+            "RE_REPEAL_RANGE matched zero times -- expected >= 2. "
+            "Repeal detection is likely broken."
+        )
     return errors, warnings
 
 
@@ -388,16 +413,24 @@ def main():
     ap.add_argument("--pdf", required=True, type=Path)
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--topic-overrides", type=Path, default=None)
-    ap.add_argument("--manual-patches", type=Path, default=None,
-                     help="JSON: {\"article_number\": {\"text_ar\": \"...\", \"text_en\": \"...\"}} "
-                          "-- inserts or overwrites specific records after parsing, for content "
-                          "confirmed real but not automatically recoverable (e.g. a genuinely "
-                          "missing extracted token). Use sparingly and note the source.")
-    ap.add_argument("--known-gaps", type=str, default="",
-                     help="Comma-separated article numbers to treat as confirmed-absent "
-                          "rather than an extraction failure (e.g. '1022'). Only pass "
-                          "numbers you've verified against an authoritative source -- "
-                          "this script does not verify them itself.")
+    ap.add_argument(
+        "--manual-patches",
+        type=Path,
+        default=None,
+        help='JSON: {"article_number": {"text_ar": "...", "text_en": "..."}} '
+        "-- inserts or overwrites specific records after parsing, for content "
+        "confirmed real but not automatically recoverable (e.g. a genuinely "
+        "missing extracted token). Use sparingly and note the source.",
+    )
+    ap.add_argument(
+        "--known-gaps",
+        type=str,
+        default="",
+        help="Comma-separated article numbers to treat as confirmed-absent "
+        "rather than an extraction failure (e.g. '1022'). Only pass "
+        "numbers you've verified against an authoritative source -- "
+        "this script does not verify them itself.",
+    )
     ap.add_argument("--print-outline", action="store_true")
     args = ap.parse_args()
     known_gaps = {int(x) for x in args.known_gaps.split(",") if x.strip()}
@@ -412,14 +445,18 @@ def main():
             en_lines, ar_lines = extract_page_columns(page, i)
             en_stream.extend(en_lines)
             ar_stream.extend(ar_lines)
-    print(f"[info] {len(pdf.pages)} pages, {len(en_stream)} EN lines, "
-          f"{len(ar_stream)} AR lines", file=sys.stderr)
+    print(
+        f"[info] {len(pdf.pages)} pages, {len(en_stream)} EN lines, {len(ar_stream)} AR lines",
+        file=sys.stderr,
+    )
 
     errors, warnings, repeal_ranges_found, repeal_placeholders = [], [], [], []
-    ar_articles = parse_arabic_stream(ar_stream, overrides, errors, warnings,
-                                       repeal_ranges_found, repeal_placeholders)
+    ar_articles = parse_arabic_stream(
+        ar_stream, overrides, errors, warnings, repeal_ranges_found, repeal_placeholders
+    )
     en_articles = parse_english_stream(
-        en_stream, errors,
+        en_stream,
+        errors,
         needed_pages={n: a.page for n, a in ar_articles.items()},
     )
 
@@ -430,8 +467,9 @@ def main():
     for lo, hi, notice, book, chapter, section, topic, pg in repeal_placeholders:
         for k in range(lo, hi + 1):
             if k not in ar_articles:
-                ar_articles[k] = ArArticle(text=notice, book=book, chapter=chapter,
-                                            section=section, topic=topic, page=pg)
+                ar_articles[k] = ArArticle(
+                    text=notice, book=book, chapter=chapter, section=section, topic=topic, page=pg
+                )
             if k not in en_articles:
                 en_articles[k] = notice
 
@@ -491,8 +529,10 @@ def main():
     if args.print_outline:
         for n in sorted(records):
             r = records[n]
-            print(f"{n:4d} | {r.book[:28]:28s} | {r.chapter[:22]:22s} | "
-                  f"{r.section[:22]:22s} | {r.topic[:22]:22s} | repealed={r.is_repealed}")
+            print(
+                f"{n:4d} | {r.book[:28]:28s} | {r.chapter[:22]:22s} | "
+                f"{r.section[:22]:22s} | {r.topic[:22]:22s} | repealed={r.is_repealed}"
+            )
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as f:

@@ -1,5 +1,6 @@
 import re
 import sys
+
 sys.path.insert(0, "scripts")
 import extract_corpus as ec  # noqa: E402
 import pdfplumber
@@ -24,7 +25,7 @@ for n in TARGETS:
     pat = re.compile(rf"\bArticle\s+{n}\b")
     hits = [(idx, pg, t) for idx, (pg, t) in enumerate(en_stream) if pat.search(t)]
     if not hits:
-        print(f"  NOT FOUND anywhere in EN stream (not even as substring)")
+        print("  NOT FOUND anywhere in EN stream (not even as substring)")
     for idx, pg, t in hits:
         matches_header_regex = bool(ec.RE_EN_ARTICLE.match(t))
         print(f"  EN page {pg}: {t!r}  [matches header regex: {matches_header_regex}]")

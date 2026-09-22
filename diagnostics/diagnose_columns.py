@@ -1,5 +1,6 @@
-import pdfplumber
 import collections
+
+import pdfplumber
 
 PDF = "data/raw/civil_code.pdf"
 PAGE = 5  # 0-indexed -> page 6, matches the sample you pasted

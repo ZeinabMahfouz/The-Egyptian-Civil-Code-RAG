@@ -8,13 +8,21 @@ CORPUS_PATH = Path(__file__).parent.parent / "data" / "interim" / "civil_code.js
 EXPECTED_MIN_ARTICLE = 1
 EXPECTED_MAX_ARTICLE = 1149
 MAX_REASONABLE_TEXT_LENGTH = 6000  # chars -- matches extract_corpus.py's own threshold;
-                                    # a record past this almost certainly means a failed
-                                    # article-boundary split, not a genuinely long article
+# a record past this almost certainly means a failed
+# article-boundary split, not a genuinely long article
 KNOWN_REPEALED_RANGES = [(54, 80), (389, 417)]
 MIN_EXPECTED_REPEALED_COUNT = 56  # 27 (54-80) + 29 (389-417); more is fine, fewer is not
 REQUIRED_FIELDS = {
-    "article_number", "book", "chapter", "section", "topic",
-    "text_ar", "text_en", "is_repealed", "source_page", "citation",
+    "article_number",
+    "book",
+    "chapter",
+    "section",
+    "topic",
+    "text_ar",
+    "text_en",
+    "is_repealed",
+    "source_page",
+    "citation",
 }
 
 
@@ -106,7 +114,9 @@ def test_no_oversized_records(corpus):
 def test_known_repealed_ranges_are_flagged(by_number):
     for lo, hi in KNOWN_REPEALED_RANGES:
         for n in range(lo, hi + 1):
-            assert n in by_number, f"Article {n} (in known repealed range {lo}-{hi}) is missing entirely"
+            assert n in by_number, (
+                f"Article {n} (in known repealed range {lo}-{hi}) is missing entirely"
+            )
             assert by_number[n]["is_repealed"] is True, (
                 f"Article {n} falls in known repealed range {lo}-{hi} but is_repealed=False -- "
                 f"a downstream retriever would surface this as live law"
@@ -126,10 +136,11 @@ def test_non_repealed_articles_are_not_flagged_repealed(corpus):
     # True or a coin flip. Every flagged article should actually contain a
     # repeal-related term in its own text.
     import re
+
     repeal_pattern = re.compile(r"ملغاة|ألغيت|ألغي|repealed|abolished", re.I)
     for rec in corpus:
         if rec.get("is_repealed"):
-            combined = (rec.get("text_ar", "") + rec.get("text_en", ""))
+            combined = rec.get("text_ar", "") + rec.get("text_en", "")
             assert repeal_pattern.search(combined) or "manually_patched" in rec.get("flags", []), (
                 f"Article {rec['article_number']} flagged is_repealed=True but its text "
                 f"contains no repeal-related term -- possible false positive"

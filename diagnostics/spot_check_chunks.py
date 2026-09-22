@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 with open("data/interim/chunks.json", encoding="utf-8") as f:
     chunks = json.load(f)
@@ -26,7 +25,10 @@ print("=" * 70)
 dedup_chunks = [c for c in chunks if "deduped_repealed_range" in c["flags"]]
 for c in dedup_chunks:
     print(f"\nchunk_id={c['chunk_id']}")
-    print(f"  covers {len(c['article_numbers'])} articles: {c['article_numbers'][:5]}...{c['article_numbers'][-3:]}")
+    print(
+        f"  covers {len(c['article_numbers'])} articles: "
+        f"{c['article_numbers'][:5]}...{c['article_numbers'][-3:]}"
+    )
     print(f"  citation: {c['citation']}")
     print(f"  text_ar: {c['text_ar']!r}")
 

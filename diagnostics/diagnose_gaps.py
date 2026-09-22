@@ -1,5 +1,6 @@
 import re
 import sys
+
 sys.path.insert(0, "scripts")
 import extract_corpus as ec  # noqa: E402
 import pdfplumber
@@ -7,7 +8,6 @@ import pdfplumber
 PDF = "data/raw/civil_code.pdf"
 
 with pdfplumber.open(PDF) as pdf:
-
     # --- 1: page 1 duplicate words -------------------------------------
     print("=" * 70)
     print("CHECK 1: page 1 -- duplicate word objects?")
@@ -58,7 +58,7 @@ with pdfplumber.open(PDF) as pdf:
     print("EN stream matches:")
     for idx, (pg, t) in enumerate(en_stream):
         if pat_en.search(t):
-            ctx = en_stream[max(0, idx - 2): idx + 3]
+            ctx = en_stream[max(0, idx - 2) : idx + 3]
             print(f"  page {pg}: {t!r}")
             for cpg, ct in ctx:
                 print(f"      ctx p{cpg}: {ct!r}")
@@ -67,7 +67,7 @@ with pdfplumber.open(PDF) as pdf:
     print("AR stream matches:")
     for idx, (pg, t) in enumerate(ar_stream):
         if any(x in t for x in ar_targets):
-            ctx = ar_stream[max(0, idx - 2): idx + 3]
+            ctx = ar_stream[max(0, idx - 2) : idx + 3]
             print(f"  page {pg}: {t!r}")
             for cpg, ct in ctx:
                 print(f"      ctx p{cpg}: {ct!r}")

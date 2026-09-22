@@ -1,4 +1,5 @@
 import sys
+
 sys.path.insert(0, "scripts")
 import extract_corpus as ec  # noqa: E402
 import pdfplumber
@@ -16,17 +17,21 @@ with pdfplumber.open(PDF) as pdf:
         split_x = ec.find_split_x(words, page.width)
 
         # anything containing digit fragments that could be a mangled 1022
-        candidates = [w for w in words if any(c.isdigit() for c in w["text"])
-                      or any('\u0660' <= c <= '\u0669' for c in w["text"])]
-        print(f"\nall numeric-ish words on this page:")
+        candidates = [
+            w
+            for w in words
+            if any(c.isdigit() for c in w["text"])
+            or any("\u0660" <= c <= "\u0669" for c in w["text"])
+        ]
+        print("\nall numeric-ish words on this page:")
         for w in candidates:
             side = "LEFT(EN)" if w["x0"] < split_x else "RIGHT(AR)"
             print(f"  x0={w['x0']:6.1f} top={w['top']:6.1f} side={side:9s} text={w['text']!r}")
 
         en_lines, ar_lines = ec.extract_page_columns(page, page_num)
-        print(f"\nfull reconstructed EN lines:")
+        print("\nfull reconstructed EN lines:")
         for pg, t in en_lines:
             print(f"  {t!r}")
-        print(f"\nfull reconstructed AR lines:")
+        print("\nfull reconstructed AR lines:")
         for pg, t in ar_lines:
             print(f"  {t!r}")
