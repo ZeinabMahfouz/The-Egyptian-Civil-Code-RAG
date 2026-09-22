@@ -1,0 +1,10 @@
+chunking:
+  # Articles longer than this AND containing genuine numbered paragraph
+  # markers get split by paragraph, each sub-chunk still tagged with its
+  # parent article_number. Below this, whole-article chunking (the
+  # default -- see chunk_corpus.py docstring for why).
+  paragraph_split_threshold_chars: 700
+  # Contiguous repealed-range articles sharing identical placeholder text
+  # (e.g. 54-80, 389-417) collapse into one chunk per range instead of
+  # one near-duplicate vector per article number.
+  dedupe_repealed_ranges: true

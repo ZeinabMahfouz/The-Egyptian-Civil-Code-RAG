@@ -43,3 +43,28 @@ stages:
       hash: md5
       md5: d41d8cd98f00b204e9800998ecf8427e
       size: 0
+  chunk_corpus:
+    cmd: python scripts/chunk_corpus.py --corpus data/interim/civil_code.json 
+      --out data/interim/chunks.json --params params.yaml
+    deps:
+    - path: data/interim/.validated
+      hash: md5
+      md5: d41d8cd98f00b204e9800998ecf8427e
+      size: 0
+    - path: data/interim/civil_code.json
+      hash: md5
+      md5: f99065d564dfb814bc595a175cc133ff
+      size: 1300409
+    - path: scripts/chunk_corpus.py
+      hash: md5
+      md5: 80da2d6dd7f0c628761f550c9319cb86
+      size: 12271
+    params:
+      params.yaml:
+        chunking.dedupe_repealed_ranges: true
+        chunking.paragraph_split_threshold_chars: 700
+    outs:
+    - path: data/interim/chunks.json
+      hash: md5
+      md5: d8a9616908de58e16a26de5fb3b53b06
+      size: 1351941

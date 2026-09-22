@@ -16,3 +16,15 @@ stages:
       - tests/test_corpus_validation.py
     outs:
       - data/interim/.validated
+
+  chunk_corpus:
+    cmd: python scripts/chunk_corpus.py --corpus data/interim/civil_code.json --out data/interim/chunks.json --params params.yaml
+    deps:
+      - scripts/chunk_corpus.py
+      - data/interim/civil_code.json
+      - data/interim/.validated
+    params:
+      - chunking.paragraph_split_threshold_chars
+      - chunking.dedupe_repealed_ranges
+    outs:
+      - data/interim/chunks.json
