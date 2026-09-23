@@ -28,3 +28,16 @@ stages:
       - chunking.dedupe_repealed_ranges
     outs:
       - data/interim/chunks.json
+
+  embed_index:
+    cmd: python scripts/embed_and_index.py --chunks data/interim/chunks.json --params params.yaml
+    deps:
+      - scripts/embed_and_index.py
+      - data/interim/chunks.json
+    params:
+      - embedding.model_name
+      - embedding.batch_size
+      - qdrant.collection_name
+      - qdrant.storage_path
+    outs:
+      - data/processed/qdrant_storage

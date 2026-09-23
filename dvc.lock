@@ -1,8 +1,8 @@
 schema: '2.0'
 stages:
   extract_corpus:
-    cmd: python scripts/extract_corpus.py --pdf data/raw/civil_code.pdf --out 
-      data/interim/civil_code.json --topic-overrides 
+    cmd: python scripts/extract_corpus.py --pdf data/raw/civil_code.pdf --out
+      data/interim/civil_code.json --topic-overrides
       scripts/topic_overrides.json --manual-patches scripts/manual_patches.json
     deps:
     - path: data/raw/civil_code.pdf
@@ -11,8 +11,8 @@ stages:
       size: 2599703
     - path: scripts/extract_corpus.py
       hash: md5
-      md5: e6faa7b6f8fc427a7d34eb13c6257194
-      size: 21217
+      md5: 0e6c202ce3deefefb00f5be0a32a1b60
+      size: 21346
     - path: scripts/manual_patches.json
       hash: md5
       md5: bc5584ea5c2b001047bbc91a1c996a7f
@@ -27,7 +27,7 @@ stages:
       md5: f99065d564dfb814bc595a175cc133ff
       size: 1300409
   validate_corpus:
-    cmd: pytest tests/test_corpus_validation.py -v && touch 
+    cmd: pytest tests/test_corpus_validation.py -v && touch
       data/interim/.validated
     deps:
     - path: data/interim/civil_code.json
@@ -36,15 +36,15 @@ stages:
       size: 1300409
     - path: tests/test_corpus_validation.py
       hash: md5
-      md5: b444de9fdaa89d6119612b16574b6c5b
-      size: 5921
+      md5: 9c2a5265c35173e834c03215f17f78f5
+      size: 5913
     outs:
     - path: data/interim/.validated
       hash: md5
       md5: d41d8cd98f00b204e9800998ecf8427e
       size: 0
   chunk_corpus:
-    cmd: python scripts/chunk_corpus.py --corpus data/interim/civil_code.json 
+    cmd: python scripts/chunk_corpus.py --corpus data/interim/civil_code.json
       --out data/interim/chunks.json --params params.yaml
     deps:
     - path: data/interim/.validated
@@ -57,8 +57,8 @@ stages:
       size: 1300409
     - path: scripts/chunk_corpus.py
       hash: md5
-      md5: 80da2d6dd7f0c628761f550c9319cb86
-      size: 12271
+      md5: 2bac66e7cb0ab6eaa09e57d7979c0087
+      size: 9837
     params:
       params.yaml:
         chunking.dedupe_repealed_ranges: true
@@ -68,3 +68,27 @@ stages:
       hash: md5
       md5: d8a9616908de58e16a26de5fb3b53b06
       size: 1351941
+  embed_index:
+    cmd: python scripts/embed_and_index.py --chunks data/interim/chunks.json
+      --params params.yaml
+    deps:
+    - path: data/interim/chunks.json
+      hash: md5
+      md5: d8a9616908de58e16a26de5fb3b53b06
+      size: 1351941
+    - path: scripts/embed_and_index.py
+      hash: md5
+      md5: c32c9becbad09b5c06d4b469301b23ed
+      size: 3801
+    params:
+      params.yaml:
+        embedding.batch_size: 32
+        embedding.model_name: BAAI/bge-m3
+        qdrant.collection_name: egyptian_civil_code
+        qdrant.storage_path: data/processed/qdrant_storage
+    outs:
+    - path: data/processed/qdrant_storage
+      hash: md5
+      md5: a5432fb463d62bd733fcb3a7258b573f.dir
+      size: 24338998
+      nfiles: 3
