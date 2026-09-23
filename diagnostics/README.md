@@ -20,3 +20,6 @@ part of the reproducible pipeline (no dvc.yaml stage depends on these)
 - spot_check_chunks.py   -- manual verification of paragraph-split chunks (238, 658), the two
                              deduped repealed-range chunks, and a normal whole-article chunk,
                              confirming chunk_corpus.py's output matches its design on real data
+## Embedding model comparison (data/interim/chunks.json -> vectors)
+- compare_embedding_models.py -- 4-query recall@3 smoke test, BGE-M3 vs multilingual-e5-large,
+                                   informed the choice recorded in docs/decisions.md
