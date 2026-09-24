@@ -59,8 +59,8 @@ see `diagnostics/README.md` for the full trail.
 
 ## Stack
 
-Python, pdfplumber, embeddings + vector DB *(TBD -- see roadmap)*, vLLM,
-RAGAS, Langfuse, BentoML, MLflow, DVC, Docker, GitHub Actions.
+Python, pdfplumber, BGE-M3, Qdrant, Qwen3, transformers (dev) / vLLM
+(serving), RAGAS, Langfuse, BentoML, MLflow, DVC, Docker, GitHub Actions.
 
 ## Project structure
 
@@ -68,14 +68,15 @@ RAGAS, Langfuse, BentoML, MLflow, DVC, Docker, GitHub Actions.
 data/
   raw/            source PDF, DVC-tracked
   interim/        pipeline intermediates (civil_code.json, chunks.json)
-  processed/      (reserved for downstream stages -- embeddings, index)
+  processed/      pipeline outputs -- Qdrant vector index (data/processed/qdrant_storage)
 scripts/          pipeline code only (extract_corpus.py, chunk_corpus.py,
                   topic_overrides.json, manual_patches.json)
 diagnostics/      one-off debugging/analysis scripts, not part of the
                   pipeline -- documents how failures were found and fixed
 tests/            pytest validation suite
 notebooks/        exploratory work
-src/              (reserved for application/serving code)
+src/              installable package (pip install -e .) -- RAG query engine
+                  (egyptian_civil_code_rag/query.py: retrieval, dedup, citation)
 dvc.yaml          pipeline stage definitions
 params.yaml       tunable pipeline parameters (chunking thresholds, etc.)
 ```
@@ -102,9 +103,14 @@ project's existing one -- see `.dvc/config`.
 - [x] Corpus validation: automated pytest gate, wired into DVC
 - [x] Chunking: article-level, paragraph-split for long articles,
       repealed-range deduplication -- 1102 chunks
-- [ ] Embedding model selection (Arabic/bilingual-capable)
-- [ ] Vector database setup and indexing
-- [ ] Retrieval + generation pipeline (vLLM)
+- [x] Embedding model selection: BGE-M3 (see docs/decisions.md)
+- [x] Vector database: Qdrant, 1149 articles -> 2195 indexed points
+- [x] Query engine (`src/egyptian_civil_code_rag/query.py`): retrieval +
+      dedup + citation-only sources, validated end-to-end on real
+      queries (force-majeure article, repealed-range status check)
+- [ ] Generative model for serving: Qwen3-8B via vLLM (Qwen3-1.7B via
+      `transformers` used for CPU-based development so far)
+- [ ] FastAPI `/ask` + `/health` endpoints
 - [ ] RAGAS evaluation harness
 - [ ] MLflow experiment tracking (chunking/embedding parameter sweeps)
 - [ ] BentoML serving

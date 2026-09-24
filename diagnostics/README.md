@@ -1,9 +1,10 @@
 # Debugging and analysis trail
 
-One-off scripts used during development of the extraction and chunking
-pipeline (`scripts/extract_corpus.py`, `scripts/chunk_corpus.py`). Not
-part of the reproducible pipeline (no dvc.yaml stage depends on these)
--- kept as documentation of the debugging and design process.
+One-off scripts used during development of the extraction, chunking,
+and embedding pipeline. Not part of the reproducible pipeline (no
+dvc.yaml stage depends on these) -- kept as documentation of the
+debugging and design process, and as evidence for the course
+checklist items that ask for spot-checks and analysis artifacts.
 
 ## Extraction debugging (data/interim/civil_code.json)
 - diagnose_columns.py    -- found the AR/EN column-split boundary via pdfplumber word positions
@@ -20,6 +21,13 @@ part of the reproducible pipeline (no dvc.yaml stage depends on these)
 - spot_check_chunks.py   -- manual verification of paragraph-split chunks (238, 658), the two
                              deduped repealed-range chunks, and a normal whole-article chunk,
                              confirming chunk_corpus.py's output matches its design on real data
-## Embedding model comparison (data/interim/chunks.json -> vectors)
-- compare_embedding_models.py -- 4-query recall@3 smoke test, BGE-M3 vs multilingual-e5-large,
-                                   informed the choice recorded in docs/decisions.md
+
+## Arabic text spot-check (course checklist: "spot-checked on 20 articles")
+- select_arabic_spot_check.py -- generates a reproducible (seeded), deliberately-diverse 20-article
+                                  sample: 8 forced picks covering every real edge case this project
+                                  surfaced (the promulgation-law duplicate at Article 1, the empty-cell
+                                  defect at 1022, both paragraph-split articles 238/658, one article
+                                  from each repealed range, Article 147), plus 12 stratified across
+                                  the full document. Writes the fillable report to
+                                  reports/arabic_spot_check.md -- see that file for the completed
+                                  verification results.

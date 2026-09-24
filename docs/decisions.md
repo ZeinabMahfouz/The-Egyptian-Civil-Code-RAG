@@ -111,3 +111,57 @@ chunk) without special-casing.
 `chunk_id + lang`, not random), so re-running the indexing script is
 an idempotent upsert rather than a duplicate insert -- required for
 the "batch re-indexing with a new document" checklist item later.
+
+---
+
+## Generative model: Qwen3 family, dev/production split
+
+**Decision:** Qwen3-1.7B (bfloat16, `transformers` backend) for local
+CPU development of the retrieval/citation logic; Qwen3-8B (vLLM
+backend) planned for actual serving once GPU access exists.
+
+**Why Qwen3 specifically:** multiple independent sources repeatedly
+highlighted the Qwen3 family for Arabic specifically (not just
+"multilingual" as a checkbox) -- strong quality across 100+ languages
+including Arabic, and separately ranked near the top for RAG
+faithfulness in general benchmarks. Same reasoning pattern as the
+BGE-M3 embedding choice: prefer evidence naming this exact combination
+(Arabic + RAG) over generic leaderboards.
+
+**Why a dev/production split:** `check_gpu.py` confirmed this machine
+is CPU-only (`torch.cuda.is_available() == False`). vLLM's design
+(PagedAttention, continuous batching) targets GPU inference -- running
+it now, on CPU, just to iterate on prompt design would be friction
+with no benefit, and the later Locust-at-50-concurrent-users test
+wouldn't be meaningful on CPU regardless. Staying within the same
+Qwen3 family across both tiers keeps the chat template and prompt
+format identical, so the eventual swap to Qwen3-8B + vLLM is a config
+change (model name, generation backend), not a rewrite -- `generate_fn`
+is injected into `RAGQueryEngine` specifically to make that swap clean.
+
+**Memory constraint found along the way:** this machine has 7.6GB RAM
+total, ~6.2GB available to WSL. Qwen3-1.7B in float32 (~6.8GB) plus
+BGE-M3 (~2.2GB) exceeded that and crashed the WSL connection outright.
+Switched to bfloat16 (~3.4GB for the 1.7B model), bringing total usage
+to ~5.6GB -- comfortably inside the available 6.2GB. Documented here
+because "the model that scores best on paper" isn't usable if it
+doesn't fit the actual hardware -- a real constraint, not a
+theoretical one.
+
+**Also fixed:** Qwen3 generates an internal `<think>...</think>`
+reasoning block by default, which was leaking into the `answer` field.
+Disabled via `enable_thinking=False` at generation time, with a
+defensive regex strip as backup in case a future model swap doesn't
+fully respect that flag.
+
+**Validated on real queries, not just retrieval in isolation:** the
+force-majeure question correctly retrieved and cited Article 147; the
+repealed-associations question correctly retrieved the deduped
+54-80 range chunk (as a range citation, not 27 separate hits) and
+correctly flagged it as no longer in force -- confirming the
+repealed-range dedup and citation-by-range design (see chunking
+decision above) works end-to-end, not just in the chunking-stage
+spot-check.
+
+**Revisit:** formal comparison via MLflow + RAGAS on >=50 questions,
+per the course checklist, once vLLM serving and FastAPI exist.

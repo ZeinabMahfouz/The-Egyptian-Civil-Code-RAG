@@ -1,9 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "egyptian-civil-code-rag"
+version = "0.1.0"
+description = "Arabic legal RAG system for the Egyptian Civil Code (ITI MLOps final project)"
+requires-python = ">=3.11"
+dependencies = [
+    "qdrant-client",
+    "sentence-transformers",
+    "pyyaml",
+    "transformers",
+    "torch",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py313"
 
 [tool.ruff.lint]
-# E/W: pycodestyle, F: pyflakes, I: isort (import sorting)
 select = ["E", "F", "I", "W"]
 ignore = []
 
