@@ -41,8 +41,9 @@ dvc-objects==5.2.0
 dvc-render==1.0.2
 dvc-studio-client==0.23.0
 dvc-task==0.40.2
--e git+https://github.com/ZeinabMahfouz/The-Egyptian-Civil-Code-RAG.git@9338dc405782d50d53108b9118fac7c0241909c3#egg=egyptian_civil_code_rag
+-e git+https://github.com/ZeinabMahfouz/The-Egyptian-Civil-Code-RAG.git@abc23f777c1afb35098569e9542ca656c3927670#egg=egyptian_civil_code_rag
 entrypoints==0.4
+fastapi==0.141.1
 filelock==3.32.7
 flatten-dict==0.5.0
 flufl.lock==9.1.0
@@ -143,6 +144,7 @@ shtab==1.12.1
 six==1.17.0
 smmap==5.0.3
 sqltrie==0.11.3
+starlette==1.7.0
 sympy==1.14.0
 tabulate==0.10.0
 threadpoolctl==3.7.0
