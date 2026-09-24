@@ -1,0 +1,24 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persists downloaded model weights (Qwen3-1.7B, BGE-M3) across
+      # container restarts -- downloaded once on first run, not baked
+      # into the image. See Dockerfile comment and docs/decisions.md
+      # for why the vector store is baked in but model weights aren't.
+      - hf_cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      # Generous: first run downloads ~5.6GB of model weights, then
+      # loads them on CPU -- both are slow relative to typical web
+      # service startup. See docs/decisions.md for the measured
+      # memory/timing constraints this project actually hit.
+      start_period: 180s
+
+volumes:
+  hf_cache:

@@ -83,6 +83,8 @@ params.yaml       tunable pipeline parameters (chunking thresholds, etc.)
 
 ## Reproducing this
 
+**Full pipeline, from source (rebuilds extraction -> chunking -> embedding -> index):**
+
 ```bash
 git clone <repo-url>
 cd The-Egyptian-Civil-Code-RAG
@@ -94,8 +96,34 @@ dvc pull      # fetch the DVC-tracked raw PDF and pipeline outputs
 dvc repro     # rebuild everything from source, verifying it reproduces
 ```
 
+**Just run the Q&A API on any machine, without rebuilding anything** --
+3 commands, per the course checklist:
+
+```bash
+dvc pull                # fetches the pre-built vector store this Dockerfile bakes in
+docker compose up --build
+curl http://localhost:8000/health   # wait for {"status":"healthy",...}, then:
+curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" \
+     -d '{"question": "What does Article 147 say?"}'
+```
+
+First run downloads ~5.6GB of model weights (Qwen3-1.7B + BGE-M3) into
+a persistent Docker volume -- slow once, instant on every run after.
+The vector store itself (your corpus, already embedded) is baked into
+the image at build time, so no DVC access is needed once the image
+exists; `dvc pull` is only how you get that data onto disk *before*
+`docker build` runs.
+
 Configure your own DVC remote first if you're not pulling from the
 project's existing one -- see `.dvc/config`.
+
+**Note on the generative model:** the Docker image currently runs the
+same CPU-based `transformers` backend used for local development
+(Qwen3-1.7B), not the Qwen3-8B + vLLM production target -- this
+project's development environment is CPU-only (see
+`docs/decisions.md`), and vLLM's GPU-oriented design isn't a good fit
+without one. Swapping to vLLM + GPU is a planned follow-up, not yet
+done.
 
 ## Status
 
@@ -108,9 +136,11 @@ project's existing one -- see `.dvc/config`.
 - [x] Query engine (`src/egyptian_civil_code_rag/query.py`): retrieval +
       dedup + citation-only sources, validated end-to-end on real
       queries (force-majeure article, repealed-range status check)
+- [x] FastAPI `/ask` + `/health` endpoints (`src/egyptian_civil_code_rag/api.py`):
+      Pydantic-validated request (empty/whitespace/missing question -> 422),
+      testable via injected fake engine with no model loading (tests/test_api.py)
 - [ ] Generative model for serving: Qwen3-8B via vLLM (Qwen3-1.7B via
       `transformers` used for CPU-based development so far)
-- [ ] FastAPI `/ask` + `/health` endpoints
 - [ ] RAGAS evaluation harness
 - [ ] MLflow experiment tracking (chunking/embedding parameter sweeps)
 - [ ] BentoML serving

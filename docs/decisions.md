@@ -195,3 +195,86 @@ function, where it's actually used -- `qdrant_client` and
 are already required by the embedding stage, so this doesn't add new
 install weight, only avoids the unnecessary torch dependency for a
 test path that never touches it.
+
+---
+
+## Docker: bake the vector store in, mount model weights instead
+
+**Decision:** `Dockerfile` `COPY`s `data/processed/qdrant_storage`
+(the built vector store) into the image at build time. It does NOT
+bake in LLM/embedding model weights (Qwen3-1.7B, BGE-M3) -- those
+download on first `docker compose up` into a named volume
+(`hf_cache`), persisted across container restarts.
+
+**Why the split:** the course checklist asks specifically for
+"the vector store and embedded documents" baked in, not model weights.
+There's also a real practical reason to keep them separate: the vector
+store is small (tens of MB) and project-specific -- it's the actual
+output of this project's work, so it belongs in the image. The model
+weights are ~5.6GB combined, generic (reusable by any project using
+the same models, not specific to this corpus), and would bloat every
+image rebuild if baked in, re-downloading on every `docker build`
+during development. A volume-mounted HF cache downloads them once,
+ever, regardless of how many times the image gets rebuilt afterward.
+
+**Why CPU-only torch, pinned explicitly:** `pip install torch` on
+Linux can resolve to a CUDA-bundled build several GB larger than the
+CPU-only wheel, for a machine that -- per this project's own
+CPU-only development environment -- will never use the GPU build
+anyway. Installed explicitly via the CPU wheel index, before
+`requirements.txt`, with `requirements.txt`'s own (locally-frozen,
+not guaranteed CPU-only) torch line excluded at build time so it can't
+override the explicit choice.
+
+**Revisit:** once GPU access exists for the vLLM/Qwen3-8B serving
+target, this Dockerfile needs a GPU-enabled variant (CUDA base image,
+GPU-build torch, `--gpus` at run time) -- not a modification of this
+one, since the two have genuinely different base image and dependency
+requirements.
+
+---
+
+## Retrieval: exact article-number lookup alongside semantic search
+
+**Decision:** `RAGQueryEngine.retrieve()` is two-stage, not purely
+semantic. If the question contains an explicit article-number
+reference ("Article 147", "مادة ١٤٧"), an exact Qdrant filter lookup
+for that article runs first and is prioritized; semantic (dense
+embedding) search fills any remaining context slots, or all of them
+if no explicit reference is found.
+
+**Why:** caught live, in the Docker deployment's own first smoke test
+-- `"What does Article 147 say?"` retrieved Articles 491, 54-80, and
+223, but not 147 itself. Root cause: a bare "look up article N"
+question carries almost no semantic content for a dense embedding
+model to match against -- there's no substantive statement to embed,
+just a structured reference. That's a well-known weak point for pure
+semantic retrieval, and also plausibly one of the *most* common query
+shapes a real user (particularly a lawyer doing a direct lookup,
+per this project's stated design goal of citing by article number
+"the way a lawyer verifies an answer") would actually type -- worth
+fixing properly rather than documenting as an accepted limitation.
+
+**How it's implemented:** `extract_referenced_article_numbers()`
+regex-matches "Article"/"article"/"مادة"/"المادة" followed by a number
+in either Western or Arabic-Indic digits (reusing the same digit
+translation approach as the extraction pipeline), then Qdrant's
+`Filter`/`FieldCondition`/`MatchAny` restricts the search to points
+whose `article_numbers` payload field contains one of the referenced
+numbers. This runs as a genuine vector query with a filter attached
+(not a payload-only scan), so it still ranks by relevance among
+matching points rather than returning them in arbitrary order.
+
+**Validated:** after the fix, the same failing query correctly
+retrieved Article 147 first, and the generated answer was an accurate
+summary of its actual content (the force-majeure/unforeseen-
+circumstances doctrine, independently verified against the source PDF
+earlier in this project) -- not just a citation-format fix, a real
+retrieval-quality fix.
+
+**Left as-is, not urgent:** Article 491 still appears as a secondary
+source for this query. Worth investigating later whether it's a
+genuine topical near-miss (similar to Article 658's near-miss for the
+force-majeure semantic query, noted in the embedding-model decision
+above) or something else -- not blocking, since the primary result is
+now correct.

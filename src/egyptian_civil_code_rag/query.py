@@ -5,14 +5,29 @@ from typing import Callable
 
 import yaml
 from qdrant_client import QdrantClient
+from qdrant_client.models import FieldCondition, Filter, MatchAny
 from sentence_transformers import SentenceTransformer
 
 DEFAULT_TOP_K_RAW = 8  # raw Qdrant hits fetched before dedup
 DEFAULT_TOP_K_DISTINCT = 3  # distinct articles kept as context after dedup
 
+AR_DIGITS = "٠١٢٣٤٥٦٧٨٩"
+EN_DIGITS = "0123456789"
+AR2EN = str.maketrans(AR_DIGITS, EN_DIGITS)
+RE_ARTICLE_REF = re.compile(r"(?:Article|article|مادة|المادة)\s*[:#]?\s*([0-9٠-٩]+)")
+
 
 def strip_thinking(text: str) -> str:
     return re.sub(r"<think>.*?</think>\s*", "", text, flags=re.DOTALL).strip()
+
+
+def extract_referenced_article_numbers(question: str) -> list[int]:
+    numbers = []
+    for m in RE_ARTICLE_REF.finditer(question):
+        digits = m.group(1).translate(AR2EN)
+        if digits.isdigit():
+            numbers.append(int(digits))
+    return numbers
 
 
 class RAGQueryEngine:
@@ -32,15 +47,34 @@ class RAGQueryEngine:
         top_k_raw: int = DEFAULT_TOP_K_RAW,
         top_k_distinct: int = DEFAULT_TOP_K_DISTINCT,
     ):
-        query_vec = self.embed_model.encode([question], normalize_embeddings=False)[0]
-        hits = self.client.query_points(
-            collection_name=self.collection,
-            query=query_vec.tolist(),
-            limit=top_k_raw,
-        ).points
-
+        query_vec = self.embed_model.encode([question], normalize_embeddings=False)[0].tolist()
         seen_groups = set()
         distinct = []
+
+        referenced = extract_referenced_article_numbers(question)
+        if referenced:
+            exact_hits = self.client.query_points(
+                collection_name=self.collection,
+                query=query_vec,
+                query_filter=Filter(
+                    must=[FieldCondition(key="article_numbers", match=MatchAny(any=referenced))]
+                ),
+                limit=top_k_raw,
+            ).points
+            for hit in exact_hits:
+                group_key = tuple(hit.payload["article_numbers"])
+                if group_key in seen_groups:
+                    continue
+                seen_groups.add(group_key)
+                distinct.append(hit)
+                if len(distinct) >= top_k_distinct:
+                    return distinct
+
+        hits = self.client.query_points(
+            collection_name=self.collection,
+            query=query_vec,
+            limit=top_k_raw,
+        ).points
         for hit in hits:
             group_key = tuple(hit.payload["article_numbers"])
             if group_key in seen_groups:
