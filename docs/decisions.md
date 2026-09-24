@@ -165,3 +165,33 @@ spot-check.
 
 **Revisit:** formal comparison via MLflow + RAGAS on >=50 questions,
 per the course checklist, once vLLM serving and FastAPI exist.
+
+---
+
+## API test isolation: factory pattern, not a bare app instance
+
+**Decision:** `create_app(engine=None)` factory instead of a single
+module-level `app` with model loading baked into its lifespan.
+Production use calls `create_app()` (real models load via lifespan);
+tests call `create_app(engine=FakeEngine())`, which skips the lifespan
+-- and therefore all model loading -- entirely.
+
+**Why:** given this project's CPU-only, memory-constrained development
+environment (see the generative-model decision above), a test suite
+that loads real Qwen3 + BGE-M3 weights just to check that an empty
+question returns 422 would be slow and a poor fit for CI. Validated:
+the full 5-test suite (three 422 cases, a valid-request check, and
+`/health`) runs in under 7 seconds with zero model downloads -- versus
+several minutes if real models loaded, based on this project's own
+BGE-M3 embedding timings.
+
+**Also caught along the way:** `api.py` initially imported
+`backends.py` (and therefore `torch`) at module level, which meant
+even importing the API module for a pure-validation test required
+torch installed. Fixed by moving that import inside the lifespan
+function, where it's actually used -- `qdrant_client` and
+`sentence_transformers` remain module-level imports (via
+`query.py`, needed for the `RAGQueryEngine` type itself), but those
+are already required by the embedding stage, so this doesn't add new
+install weight, only avoids the unnecessary torch dependency for a
+test path that never touches it.

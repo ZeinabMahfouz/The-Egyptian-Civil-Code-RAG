@@ -41,7 +41,7 @@ dvc-objects==5.2.0
 dvc-render==1.0.2
 dvc-studio-client==0.23.0
 dvc-task==0.40.2
--e git+https://github.com/ZeinabMahfouz/The-Egyptian-Civil-Code-RAG.git@abc23f777c1afb35098569e9542ca656c3927670#egg=egyptian_civil_code_rag
+-e git+https://github.com/ZeinabMahfouz/The-Egyptian-Civil-Code-RAG.git@2e2862ee7bc35a1c09630c1e9979e67f8d68323d#egg=egyptian_civil_code_rag
 entrypoints==0.4
 fastapi==0.141.1
 filelock==3.32.7
@@ -160,6 +160,7 @@ typing_extensions==4.16.0
 tzdata==2026.4
 tzlocal==5.4.4
 urllib3==2.8.0
+uvicorn==0.53.0
 vine==5.1.0
 virtualenv==21.9.1
 voluptuous==0.16.0
