@@ -278,3 +278,54 @@ genuine topical near-miss (similar to Article 658's near-miss for the
 force-majeure semantic query, noted in the embedding-model decision
 above) or something else -- not blocking, since the primary result is
 now correct.
+
+---
+
+## RAGAS full-scale scoring: deferred until GPU/stronger judge available
+
+**Decision:** the RAGAS + MLflow harness (`run_ragas_eval.py`) is built,
+integrated, and verified structurally correct -- but a full scoring
+run against the 54-question evaluation set is deferred until GPU
+access and a stronger judge model exist (the planned Qwen3-8B, per the
+generative-model decision above), rather than forced through on the
+current CPU dev setup.
+
+**Why -- traced to a specific, reproducible failure, not a vague
+"it's slow":**
+- A single `Faithfulness` judge call took **27 minutes 55 seconds**
+  and still failed: `"Prompt statement_generator_prompt failed to
+  parse output: the output parser failed to parse the output
+  including retries."`
+- Root cause: RAGAS's `Faithfulness` metric first asks the judge to
+  decompose the generated answer into individual factual statements
+  in a specific structured format it parses programmatically, before
+  it can check each statement against retrieved context. Our judge
+  setup feeds RAGAS's prompts to Qwen3 through a bare
+  `HuggingFacePipeline`, which does not apply Qwen3's chat/instruct
+  template -- meaning an instruct-tuned model was effectively being
+  used as a raw text-completion model, a plausible reason its output
+  didn't conform to the format RAGAS needed.
+- Even a corrected version of this (via `ChatHuggingFace` applying
+  the proper template) doesn't remove the deeper tension: RAGAS's
+  structured-output decomposition step was designed assuming judge
+  models roughly GPT-3.5/4-class. A 1.7B-parameter local model
+  reliably producing exact parseable output for nuanced semantic
+  judgment is a real capability stretch, not purely a formatting
+  problem -- and at ~28 minutes per attempt just to find out whether
+  a fix worked, further blind iteration today was a poor use of time
+  against an uncertain payoff.
+
+**What's genuinely proven, not blocked:** the harness's plumbing is
+correct -- `import ragas` works (after the vertexai stub workaround),
+our own retrieval/generation pipeline runs correctly inside it
+(confirmed via the actual answer/citation content in
+`reports/ragas_results.json` before scoring failed), RAGAS accepts
+our `RunConfig` and custom LLM/embedding wrappers without error, and
+the MLflow logging path is wired and ready. What's missing is a judge
+capable of completing the scoring step, not code.
+
+**Revisit:** once Qwen3-8B + vLLM (or another sufficiently capable
+self-hosted model) is available, retry with `ChatHuggingFace` applying
+the proper chat template, and run the full 54-question set across all
+four metrics -- both fixes should be attempted together at that point,
+not incrementally re-tested on CPU at ~28 minutes per data point.
