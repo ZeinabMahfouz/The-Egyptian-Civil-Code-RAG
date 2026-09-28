@@ -329,3 +329,79 @@ self-hosted model) is available, retry with `ChatHuggingFace` applying
 the proper chat template, and run the full 54-question set across all
 four metrics -- both fixes should be attempted together at that point,
 not incrementally re-tested on CPU at ~28 minutes per data point.
+
+---
+
+## DVC remote: Google Drive via personal OAuth, not a service account
+
+**Decision:** the project's DVC remote moved from a local folder
+(solo-dev only, unreachable by CI) to Google Drive, authenticated via
+a personally-registered OAuth client -- not a service account, despite
+that being the initially-planned and more commonly-tutorialized
+approach for CI use.
+
+**Why not a service account, despite it being the standard tutorial
+pattern:** confirmed via direct testing, not assumption -- `dvc push`
+failed with Google's own API error: *"Service Accounts do not have
+storage quota. Leverage shared drives... or use OAuth delegation
+instead."* This is a real, current restriction on personal
+(non-Google-Workspace) Drive accounts: a service account can be
+granted Editor access to a folder and will correctly authenticate, but
+genuinely cannot upload new files into it, regardless of sharing
+permissions -- multiple community tutorials describing the
+service-account approach as working were either written before Google
+tightened this enforcement, or assume Workspace access (Shared
+Drives), which a personal account doesn't have.
+
+**Why a personally-registered OAuth client, not DVC's built-in
+default one:** DVC ships a shared OAuth client for the standard
+interactive-login flow, but Google has been increasingly flagging that
+shared client as unverified for many users. Registering an
+application-specific OAuth client (Google Cloud Console -> APIs &
+Services -> Credentials -> OAuth client ID -> Desktop app) avoided
+this entirely.
+
+**WSL-specific issue, not a DVC/Google issue:** the interactive OAuth
+flow tries to auto-launch a browser via `gio`, which doesn't work
+inside WSL (`gio: ... Operation not supported`) -- it prints a valid
+auth URL but nothing opens, and the flow hangs waiting for a redirect
+that never arrives. Fix: manually copy the printed URL into a Windows
+browser, complete the Google login/consent there, and let the
+already-running WSL process pick up the redirect via WSL2's
+localhost-forwarding -- no code or config change needed, just a manual
+step.
+
+**Credential hygiene, applied throughout:**
+- The service account's JSON key and the OAuth client secret were
+  kept in `.dvc/config.local` (gitignored by default) via `dvc remote
+  modify --local`, never in the committed `.dvc/config`. Caught one
+  near-miss directly: an early `dvc remote modify` command was run
+  without `--local`, landing the client ID/secret in the tracked file
+  -- caught via `git diff .dvc/config` before committing, then moved
+  correctly and the client secret was regenerated rather than trusting
+  a secret that had briefly been mistyped/exposed in a terminal.
+- The downloaded service-account JSON key was moved outside the
+  project directory entirely (`~/.secrets/`, `chmod 600`), not stored
+  inside the repo tree even with a .gitignore rule protecting it --
+  removes the risk class entirely rather than relying on remembering
+  an exclusion rule correctly.
+
+**CI wiring:** three GitHub Actions secrets (`GDRIVE_CLIENT_ID`,
+`GDRIVE_CLIENT_SECRET`, `GDRIVE_USER_CREDENTIALS`) reconstruct the
+same local setup on the runner: client ID/secret via `dvc remote
+modify --local`, and the pre-authorized token (from the *local*
+one-time interactive login, so CI never has to do interactive OAuth
+itself) written to the exact path dvc-gdrive expects --
+`~/.cache/pydrive2fs/<client_id>/default.json` -- confirmed via the
+developer's own local warning message before ever writing the CI step,
+not guessed from documentation alone.
+
+**Result:** `lint`, `test`, `rebuild_index` (full `dvc repro` from
+source, including a real ~2.2GB model download and re-embedding), and
+`build_and_push_image` (to GHCR, using the automatically-provided
+`GITHUB_TOKEN` rather than a fourth credential) all run and pass in
+GitHub Actions. The RAGAS faithfulness gate remains the one
+intentionally deferred CI stage (see the RAGAS decision above) --
+everything else in the course's "lint -> test -> rebuild index -> push
+Docker image" checklist item is now real and green, not just
+configured.

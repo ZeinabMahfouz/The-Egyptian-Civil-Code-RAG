@@ -115,7 +115,10 @@ exists; `dvc pull` is only how you get that data onto disk *before*
 `docker build` runs.
 
 Configure your own DVC remote first if you're not pulling from the
-project's existing one -- see `.dvc/config`.
+project's existing one. The remote is Google Drive via a personal
+OAuth client, not a service account -- see the "DVC remote" entry in
+`docs/decisions.md` for why, and for the exact setup steps if you're
+reproducing this from scratch on a new machine.
 
 **Note on the generative model:** the Docker image currently runs the
 same CPU-based `transformers` backend used for local development
@@ -139,10 +142,29 @@ done.
 - [x] FastAPI `/ask` + `/health` endpoints (`src/egyptian_civil_code_rag/api.py`):
       Pydantic-validated request (empty/whitespace/missing question -> 422),
       testable via injected fake engine with no model loading (tests/test_api.py)
+- [x] Docker: built, verified live (retrieval, generation, citation,
+      the exact-article-lookup fix -- all confirmed through the real
+      running container, not just unit tests)
+- [x] GitHub Actions CI: `lint` -> `test` -> `rebuild_index` (full
+      `dvc repro` from source) -> `build_and_push_image` (to GHCR),
+      all real and passing -- DVC remote is Google Drive (personal
+      OAuth, not a service account -- see docs/decisions.md), CI
+      authenticates via three repo secrets reconstructing the same
+      local credential setup
 - [ ] Generative model for serving: Qwen3-8B via vLLM (Qwen3-1.7B via
       `transformers` used for CPU-based development so far)
-- [ ] RAGAS evaluation harness
+- [x] RAGAS evaluation harness: built, integrated, verified
+      structurally correct (real retrieval + generation, correct
+      MLflow logging path) -- full-scale scoring deferred until
+      GPU/stronger judge available, see docs/decisions.md for the
+      specific failure (chat-template mismatch + judge capability
+      limits, not a config bug) and the 27m55s data point that
+      informed the decision to stop iterating on CPU
+- [x] 54-question evaluation set (`tests/eval/eval_questions.json`),
+      stratified across substantive questions, direct article lookups,
+      repealed-status checks (including individual articles inside a
+      repealed range, not just the range itself), and out-of-corpus
+      edge cases
 - [ ] MLflow experiment tracking (chunking/embedding parameter sweeps)
 - [ ] BentoML serving
 - [ ] Langfuse observability
-- [ ] Docker + GitHub Actions CI/CD
