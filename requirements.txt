@@ -9,7 +9,7 @@ annotated-types==0.8.0
 antlr4-python3-runtime==4.9.3
 anyio==4.15.1
 appdirs==1.4.4
-asyncssh==2.24.0
+asyncssh==2.23.1
 atpublic==8.0.0
 attrs==26.1.0
 billiard==4.3.0
@@ -29,7 +29,7 @@ cloudpickle==3.1.2
 colorama==0.4.6
 configobj==5.0.9
 contourpy==1.4.0
-cryptography==50.0.1
+cryptography==43.0.3
 cuda-bindings==13.4.3
 cuda-pathfinder==1.8.2
 cuda-toolkit==13.0.3.0
@@ -47,12 +47,13 @@ dpath==2.2.0
 dulwich==1.2.15
 dvc==3.67.1
 dvc-data==3.18.3
+dvc-gdrive==3.0.1
 dvc-http==2.32.0
 dvc-objects==5.2.0
 dvc-render==1.0.2
 dvc-studio-client==0.23.0
 dvc-task==0.40.2
--e git+https://github.com/ZeinabMahfouz/The-Egyptian-Civil-Code-RAG.git@8fbd05517655c5bfd2f28ebd6803bbeee00aab9c#egg=egyptian_civil_code_rag
+-e git+https://github.com/ZeinabMahfouz/The-Egyptian-Civil-Code-RAG.git@0e95da9de0aaff5c94e0da40093feb40bb778b2f#egg=egyptian_civil_code_rag
 entrypoints==0.4
 fastapi==0.141.1
 filelock==3.32.7
@@ -67,7 +68,9 @@ funcy==2.1
 gitdb==4.0.12
 GitPython==3.1.62
 google-api-core==2.39.0
+google-api-python-client==2.200.0
 google-auth==2.58.1
+google-auth-httplib2==0.4.2
 google-cloud-aiplatform==1.165.1
 google-cloud-bigquery==3.45.2
 google-cloud-core==2.7.0
@@ -93,6 +96,7 @@ hf-xet==1.6.0
 hpack==4.2.0
 httpcore==1.0.9
 httpcore2==2.13.1
+httplib2==0.32.0
 httpx==0.28.1
 httpx-sse==0.4.3
 httpx2==2.13.1
@@ -160,6 +164,7 @@ nvidia-nccl-cu13==2.30.7
 nvidia-nvjitlink==13.4.92
 nvidia-nvshmem-cu13==3.4.5
 nvidia-nvtx==13.0.85
+oauth2client==4.1.3
 omegaconf==2.3.1
 openai==1.109.1
 opentelemetry-api==1.44.0
@@ -192,9 +197,11 @@ pydantic==2.13.5
 pydantic-settings==2.15.0
 pydantic_core==2.46.5
 pydot==4.0.1
+PyDrive2==1.21.3
 pygit2==1.20.1
 Pygments==2.21.0
 pygtrie==2.6.2
+pyOpenSSL==24.2.1
 pyparsing==3.3.3
 pypdfium2==5.13.0
 pytest==9.1.1
@@ -208,6 +215,7 @@ regex==2026.9.10
 requests==2.34.2
 requests-toolbelt==1.0.0
 rich==13.9.4
+rsa==4.9.1
 ruamel.yaml==0.19.1
 ruff==0.16.8
 safetensors==0.8.0
@@ -246,6 +254,7 @@ typing-inspection==0.4.4
 typing_extensions==4.16.0
 tzdata==2026.4
 tzlocal==5.4.4
+uritemplate==4.2.0
 urllib3==2.8.0
 uuid_utils==0.17.1
 uvicorn==0.53.0
