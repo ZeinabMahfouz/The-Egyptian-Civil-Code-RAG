@@ -1,0 +1,77 @@
+[
+  {
+    "user_input":"What happens if unforeseen exceptional circumstances make contract performance excessively burdensome for the debtor?",
+    "retrieved_contexts":[
+      "The contract makes the law of the parties. It can be\nrevoked or altered only by mutual consent of the parties\nor for reasons provided for by law.\nWhen, however, as a result of exceptional and\nunpredictable events of a general character, the\nperformance of the contractual obligation, without\nbecoming impossible, becomes excessively onerous in\nsuch way as to threaten the debtor with exorbitant loss,\nthe judge may according to the circumstances, and after\ntaking into consideration the interests of both parties,\nreduce to reasonable limits, the obligation that has\nbecome excessive. Any agreement to the contrary is\nvoid.",
+      "The debtor may by agreement accept liability for\nunforeseen events and for cases of force majeure. The\ndebtor may by agreement be discharged from all liability\nfor his failure to perform the contractual obligation, with\nthe exception of liability arising from his fraud or gross\nnegligence.\nThe debtor may, nevertheless, stipulate that he shall not\nbe liable for fraud or gross negligence committed by\npersons whom he employs for the performance of his\nobligation.\nAny clause discharging a person from responsibility for\nunlawful acts, is void.",
+      "When specific performance by the debtor is impossible,\nhe will be condemned to pay damages for\nnonperformance of his obligation, unless he establishes\nthat the impossibility of performance arose from a cause\nbeyond his control. The same principle will apply, if the\ndebtor is late in the performance of his obligation."
+    ],
+    "response":"If unforeseen exceptional circumstances make contract performance excessively burdensome for the debtor, the judge may, according to the circumstances and after taking into consideration the interests of both parties, reduce to reasonable limits the obligation that has become excessive. This is provided under Egyptian Civil Code, Article 147.",
+    "reference":"The judge may, according to the circumstances and after weighing both parties' interests, reduce the excessive obligation to a reasonable limit. Any agreement to the contrary is void.",
+    "faithfulness":null,
+    "context_precision":null,
+    "context_recall":null,
+    "answer_relevancy":null,
+    "_id":"s01_en",
+    "_category":"substantive",
+    "_language":"en",
+    "_sources":[
+      "Egyptian Civil Code, Article 147",
+      "Egyptian Civil Code, Article 217",
+      "Egyptian Civil Code, Article 215"
+    ],
+    "_expected_articles":[
+      147
+    ]
+  },
+  {
+    "user_input":"ماذا يحدث إذا جعلت ظروف استثنائية غير متوقعة تنفيذ العقد مرهقاً للمدين؟",
+    "retrieved_contexts":[
+      "إذا كان محل اإللتزام مخالفا للنظام العام أو اآلداب كان العقد باطال.\nالسبب",
+      "( ١ ( العقد شريعة المتعاقدين ، فال يجوز نقضه وال تعديله إال باتفاق\nالطرفين ، أو لألسباب التى يقررها القانون.\n( ٢ ( ومع ذلك إذا طرأت حوادث استثنائية عامة لم يكن فى الوسع توقعها\nوترتب على حدوثها أن تنفيذ اإللتزام التعاقدى ، وان لم يصبح مستحيال ،\nصار مرهقا للمدين بحيث يهدده بخسارة فادحة ، جاز للقاضى تبعا\nللظروف وسد الموازنة بين مصلحة الطرفين أن يرد اإللتزام المرهق إلى\nالحد المعقول. ويقع باطال كل اتفاق على خالف ذلك.",
+      "إذا استحال على المدين أن ينف اإللتزام غينا حكم عليه بالتعويض لعدم\nالوفاء بإلتزامه ، ما لم يثبت أن استحالة التنفيذ قد نشأت عن سبب أجنبى ال\nيد له فيه .ويكون الحكم كذلك إذا تأخر المدين فى تنفيذ إلتزامه."
+    ],
+    "response":"إذا جعلت ظروف استثنائية غير متوقعة تنفيذ العقد مرهقاً للمدين، فإن القانون يسمح برد اإللتزام المرهق إلى الحد المعقول، وذلك بحسب Article 147.",
+    "reference":"The judge may, according to the circumstances and after weighing both parties' interests, reduce the excessive obligation to a reasonable limit. Any agreement to the contrary is void.",
+    "faithfulness":null,
+    "context_precision":null,
+    "context_recall":null,
+    "answer_relevancy":null,
+    "_id":"s01_ar",
+    "_category":"substantive",
+    "_language":"ar",
+    "_sources":[
+      "Egyptian Civil Code, Article 135",
+      "Egyptian Civil Code, Article 147",
+      "Egyptian Civil Code, Article 215"
+    ],
+    "_expected_articles":[
+      147
+    ]
+  },
+  {
+    "user_input":"In the absence of an applicable legal provision, what does the judge decide according to?",
+    "retrieved_contexts":[
+      "Provisions of laws govern all matters to which these\nprovisions apply in letter or spirit.\nIn the absence of a provision of a law that is applicable,\nthe Judge will decide according to custom and in the\nabsence of custom in accordance with the principles of\nMoslem Law.\nIn the absence of such principles, the Judge will apply the\nprinciples of natural justice and the rules of equity.",
+      "The judge shall decide, in the absence of any provision of\nthe law, whether a natural obligation exists.\nThere cannot ever be a natural obligation that is contrary\nto public policy.",
+      "In the absence of an agreement or of a provision of the\nlaw to the contrary, payment must be made as soon as\nthe obligation has been definitely created as a liability of\nthe debtor.\nThe judge may in exceptional cases and in the absence of\na provision of the law to the contrary, grant to the\ndebtor, when his position so requires, one or more\nreasonable delays for the performance of his obligation,\nprovided that no serious prejudice is thereby caused to\nthe creditor."
+    ],
+    "response":"The judge shall decide according to custom and in the absence of custom in accordance with the principles of Moslem Law.  \n\nThis is stated in **Egyptian Civil Code, Article 1**.",
+    "reference":"The judge decides according to custom, and in the absence of custom, according to the principles of Islamic (Moslem) law, and in the absence of such principles, according to natural justice and equity.",
+    "faithfulness":null,
+    "context_precision":null,
+    "context_recall":null,
+    "answer_relevancy":null,
+    "_id":"s02_en",
+    "_category":"substantive",
+    "_language":"en",
+    "_sources":[
+      "Egyptian Civil Code, Article 1",
+      "Egyptian Civil Code, Article 200",
+      "Egyptian Civil Code, Article 346"
+    ],
+    "_expected_articles":[
+      1
+    ]
+  }
+]
