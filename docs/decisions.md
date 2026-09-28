@@ -405,3 +405,68 @@ intentionally deferred CI stage (see the RAGAS decision above) --
 everything else in the course's "lint -> test -> rebuild index -> push
 Docker image" checklist item is now real and green, not just
 configured.
+
+---
+
+## Batch re-indexing: an incremental path, with DVC still the source of truth
+
+**Decision:** `scripts/reindex_batch.py` adds or updates additional legal
+documents (`data/documents/<doc_id>.json`) in the existing Qdrant
+collection without rebuilding it. The `embed_index` DVC stage also
+indexes every file in `data/documents/`, so `dvc repro` produces the same
+index from tracked files. The incremental script is the operational
+shortcut. DVC remains the reproducible definition.
+
+**Problems found while designing it:**
+
+- **Point-ID collision.** Point IDs were `uuid5(chunk_id + lang)`, and
+  `chunk_id` is the article number. Article 1 of any new law would get
+  the same ID as Civil Code Article 1, and the upsert would overwrite the
+  Civil Code article without any error. The fix namespaces IDs by
+  `doc_id` for every document except the Civil Code. Civil Code IDs keep
+  their original form, which a test pins down.
+- **Exact article lookup crossed documents.** "What does Article 1
+  say?" would match Article 1 of every indexed law. The exact-lookup
+  filter is now scoped to `doc_id == egyptian_civil_code`. Semantic
+  search still spans all documents, and every citation names its
+  source law (`citation_prefix`), so a retrieved non-Civil-Code article
+  is never cited as the Civil Code.
+- **Stale chunks after an edit.** A plain upsert of an edited document
+  leaves points for removed articles in the index, where they can still
+  be retrieved and cited. The script upserts first and then deletes that
+  document's leftover IDs. It does not delete first, because a crash
+  between the two steps would then leave the document missing from the
+  index; with this order, a crash leaves old and new points side by side.
+- **Mixed embedding spaces.** If `params.yaml`'s embedding model changes
+  and the base index is not rebuilt, new vectors would be added to an
+  index built by another model. The script checks that the model's
+  dimension matches the index and refuses to run on a mismatch. This
+  catches a model swap only when the dimension also changes; a full
+  `dvc repro` is the real fix.
+
+**Guards:** the script validates every input file before it touches the
+index (schema, positive integer article numbers without duplicates,
+non-empty Arabic text, and the same 6000-char split-failure threshold as
+the corpus gate). The Civil Code's `doc_id` is reserved. The Civil
+Code's point count is checked before and after the run and must not
+change. The engine refuses to start on an index that has no `doc_id`
+payloads. Without that check, an index built before this change would
+silently turn exact lookup back into pure semantic search, which is the
+Article 147 bug above.
+
+**Known limitation:** local (embedded) Qdrant allows only one process per
+storage folder, so the API must be stopped while re-indexing. This was
+confirmed live: the script fails fast with a hint rather than after the
+model load. Re-indexing while the API keeps serving would need Qdrant in
+server mode. That fits the BentoML/serving work, but it is not done yet.
+
+**Tested:** `tests/test_reindex_batch.py` runs against in-memory Qdrant
+with a deterministic fake embedder, so CI's `test` job runs it without
+downloading a model. It covers: a new document is added and Civil Code
+IDs, payloads and vectors are byte-identical; citation prefix; ID
+collision; re-runs are idempotent; an edited document drops removed
+articles; edited text is re-embedded; the dimension, legacy-index and
+validation guards; and exact lookup scoped to the Civil Code. The tests
+were confirmed to fail when each fix is reverted. The fixture is
+explicitly synthetic (`tests/fixtures/synthetic_law.json`); the real
+"new document" run uses a real law in `data/documents/`.

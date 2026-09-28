@@ -46,13 +46,20 @@ class Chunk:
     flags: list = field(default_factory=list)
 
 
-def make_citation(numbers):
+DEFAULT_CITATION_PREFIX = "Egyptian Civil Code"
+
+
+def make_citation(numbers, prefix=DEFAULT_CITATION_PREFIX):
     if len(numbers) == 1:
-        return f"Egyptian Civil Code, Article {numbers[0]}"
-    return f"Egyptian Civil Code, Articles {numbers[0]}-{numbers[-1]}"
+        return f"{prefix}, Article {numbers[0]}"
+    return f"{prefix}, Articles {numbers[0]}-{numbers[-1]}"
 
 
-def build_chunks(corpus, threshold, dedupe_repealed):
+def build_chunks(corpus, threshold, dedupe_repealed, citation_prefix=DEFAULT_CITATION_PREFIX):
+    """citation_prefix defaults to the Civil Code, so the DVC pipeline's
+    output is unchanged; scripts/reindex_batch.py passes a new document's
+    own prefix (e.g. "Law No. 4 of 1996") so its citations never read as
+    Civil Code articles."""
     corpus_sorted = sorted(corpus, key=lambda r: r["article_number"])
     chunks = []
     i = 0
@@ -86,7 +93,7 @@ def build_chunks(corpus, threshold, dedupe_repealed):
                         text_en=rec["text_en"],
                         is_repealed=True,
                         source_page=rec["source_page"],
-                        citation=make_citation(numbers),
+                        citation=make_citation(numbers, citation_prefix),
                         flags=["deduped_repealed_range"],
                     )
                 )
@@ -116,7 +123,7 @@ def build_chunks(corpus, threshold, dedupe_repealed):
                                 text_en=ep,
                                 is_repealed=rec["is_repealed"],
                                 source_page=rec["source_page"],
-                                citation=make_citation([n]),
+                                citation=make_citation([n], citation_prefix),
                             )
                         )
                 else:
@@ -134,7 +141,7 @@ def build_chunks(corpus, threshold, dedupe_repealed):
                                 text_en="",
                                 is_repealed=rec["is_repealed"],
                                 source_page=rec["source_page"],
-                                citation=make_citation([n]),
+                                citation=make_citation([n], citation_prefix),
                                 flags=["ar_only_paragraph_split"],
                             )
                         )
@@ -151,7 +158,7 @@ def build_chunks(corpus, threshold, dedupe_repealed):
                             text_en=rec["text_en"],
                             is_repealed=rec["is_repealed"],
                             source_page=rec["source_page"],
-                            citation=make_citation([n]),
+                            citation=make_citation([n], citation_prefix),
                             flags=["en_whole_unaligned_source"],
                         )
                     )
@@ -171,7 +178,7 @@ def build_chunks(corpus, threshold, dedupe_repealed):
                 text_en=rec["text_en"],
                 is_repealed=rec["is_repealed"],
                 source_page=rec["source_page"],
-                citation=make_citation([n]),
+                citation=make_citation([n], citation_prefix),
             )
         )
         i += 1
