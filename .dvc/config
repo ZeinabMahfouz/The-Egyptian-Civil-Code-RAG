@@ -1,4 +1,9 @@
 [core]
-    remote = storage
+    remote = gdrive-storage
 ['remote "storage"']
     url = /home/zeinazozo2026/dvc-storage
+['remote "gdrive-storage"']
+    url = gdrive://1SkIrmml0ACmJIgbycgd_hiUgQaYYAvLm
+    gdrive_use_service_account = false
+    gdrive_acknowledge_abuse = true
+    gdrive_client_id = 297465168152-812u8fddmq79m8gmk85gjtq0gu9b25ch.apps.googleusercontent.com

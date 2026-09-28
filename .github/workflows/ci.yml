@@ -11,78 +11,158 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install Ruff
+        run: pip install ruff
+      - name: Ruff check
+        run: ruff check .
+      - name: Ruff format check
+        run: ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
-      - name: Install Ruff
-        run: pip install ruff
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
 
-      - name: Ruff check
-        run: ruff check .
+      # This project's DVC remote is Google Drive, authenticated via a
+      # personal OAuth client (see docs/decisions.md -- a service
+      # account was tried first and confirmed broken: "Service Accounts
+      # do not have storage quota" on a personal, non-Workspace Drive
+      # account). CI reconstructs the same cached-credential setup used
+      # locally: client_id/secret go into .dvc/config.local equivalent
+      # (via --local, not committed), and the pre-authorized token goes
+      # to the exact path dvc-gdrive expects, confirmed empirically on
+      # the developer's own machine: ~/.cache/pydrive2fs/<client_id>/default.json
+      - name: Configure DVC Google Drive credentials
+        env:
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+          GDRIVE_USER_CREDENTIALS: ${{ secrets.GDRIVE_USER_CREDENTIALS }}
+        run: |
+          dvc remote modify --local gdrive-storage gdrive_client_id "$GDRIVE_CLIENT_ID"
+          dvc remote modify --local gdrive-storage gdrive_client_secret "$GDRIVE_CLIENT_SECRET"
+          mkdir -p ~/.cache/pydrive2fs/"$GDRIVE_CLIENT_ID"
+          echo "$GDRIVE_USER_CREDENTIALS" > ~/.cache/pydrive2fs/"$GDRIVE_CLIENT_ID"/default.json
 
-      - name: Ruff format check
-        run: ruff format --check .
+      - name: DVC pull
+        run: dvc pull
 
-  # --- Blocked stages, not yet runnable in CI --------------------------
-  # Both need `dvc pull` to fetch DVC-tracked data (the raw PDF,
-  # data/interim/civil_code.json, the vector store) -- currently
-  # impossible from a GitHub-hosted runner, since this project's DVC
-  # remote is a local folder on the developer's own machine
-  # (/home/zeinazozo2026/dvc-storage), which cloud runners have no way
-  # to reach. See docs/decisions.md.
-  #
-  # Once a cloud-reachable DVC remote (e.g. Google Drive, S3) is set up
-  # and its credentials stored as a GitHub Actions secret, this becomes:
-  #
-  # test:
-  #   runs-on: ubuntu-latest
-  #   needs: lint
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-python@v5
-  #       with:
-  #         python-version: "3.13"
-  #     - run: sudo apt-get update && sudo apt-get install -y poppler-utils
-  #     - run: pip install -r requirements.txt
-  #     - run: pip install -e .
-  #     - name: Configure DVC remote credentials
-  #       run: |
-  #         dvc remote modify --local storage gdrive_use_service_account true
-  #         dvc remote modify --local storage gdrive_service_account_json_file_path <path>
-  #       env:
-  #         GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
-  #     - run: dvc pull
-  #     - run: pytest tests/ -v
-  #
-  # rebuild_index:
-  #   runs-on: ubuntu-latest
-  #   needs: test
-  #   steps:
-  #     - (same checkout/setup as above)
-  #     - run: dvc repro
-  #     - name: Assert reproducibility
-  #       run: dvc status --fail-on-diff  # or equivalent: fail if repro changed tracked outputs unexpectedly
-  #
-  # build_and_push_image:
-  #   runs-on: ubuntu-latest
-  #   needs: rebuild_index
-  #   steps:
-  #     - (same checkout, dvc pull for the vector store)
-  #     - uses: docker/build-push-action@v6
-  #       with:
-  #         push: true
-  #         tags: <registry>/egyptian-civil-code-rag:${{ github.sha }}
+      - name: Run tests
+        run: pytest tests/test_corpus_validation.py tests/test_api.py -v
+
+  rebuild_index:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Configure DVC Google Drive credentials
+        env:
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+          GDRIVE_USER_CREDENTIALS: ${{ secrets.GDRIVE_USER_CREDENTIALS }}
+        run: |
+          dvc remote modify --local gdrive-storage gdrive_client_id "$GDRIVE_CLIENT_ID"
+          dvc remote modify --local gdrive-storage gdrive_client_secret "$GDRIVE_CLIENT_SECRET"
+          mkdir -p ~/.cache/pydrive2fs/"$GDRIVE_CLIENT_ID"
+          echo "$GDRIVE_USER_CREDENTIALS" > ~/.cache/pydrive2fs/"$GDRIVE_CLIENT_ID"/default.json
+
+      - name: DVC pull
+        run: dvc pull
+
+      - name: Reproduce pipeline from source (rebuilds + re-indexes)
+        run: dvc repro
+
+      - name: Check reproducibility (no unexpected drift from tracked outputs)
+        run: dvc status
+
+  build_and_push_image:
+    runs-on: ubuntu-latest
+    needs: rebuild_index
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies (DVC only, for pulling the vector store)
+        run: pip install -r requirements.txt
+
+      - name: Configure DVC Google Drive credentials
+        env:
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+          GDRIVE_USER_CREDENTIALS: ${{ secrets.GDRIVE_USER_CREDENTIALS }}
+        run: |
+          dvc remote modify --local gdrive-storage gdrive_client_id "$GDRIVE_CLIENT_ID"
+          dvc remote modify --local gdrive-storage gdrive_client_secret "$GDRIVE_CLIENT_SECRET"
+          mkdir -p ~/.cache/pydrive2fs/"$GDRIVE_CLIENT_ID"
+          echo "$GDRIVE_USER_CREDENTIALS" > ~/.cache/pydrive2fs/"$GDRIVE_CLIENT_ID"/default.json
+
+      - name: DVC pull (fetch vector store for Docker COPY)
+        run: dvc pull
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # GHCR image names must be lowercase; GitHub usernames/repo names
+      # may not be (this repo's owner isn't), so this can't be used
+      # directly in the tag without conversion.
+      - name: Compute lowercase image name
+        run: echo "IMAGE_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  # --- Still blocked, per docs/decisions.md ---------------------------
+  # RAGAS scoring on CPU with a small local judge failed to produce
+  # usable scores (chat-template mismatch + judge capability limits,
+  # not a config issue) -- needs Qwen3-8B/GPU before this can run
+  # meaningfully, let alone gate CI on it.
   #
   # ragas_gate:
   #   runs-on: ubuntu-latest
   #   needs: rebuild_index
   #   steps:
   #     - run: python run_ragas_eval.py --questions tests/eval/eval_questions_ci_subset.json
-  #     - name: Fail if faithfulness < 0.75
-  #       run: python -c "import json,sys; d=json.load(open('reports/ragas_results.json')); sys.exit(1 if d['faithfulness'] < 0.75 else 0)"
-  #     # NOTE: per docs/decisions.md, this also needs the ChatHuggingFace
-  #     # chat-template fix and a capable-enough judge model before it can
-  #     # produce real scores at all -- not just the DVC remote.
+  #     - run: python -c "import json,sys; d=json.load(open('reports/ragas_results.json')); sys.exit(1 if d['faithfulness'] < 0.75 else 0)"
