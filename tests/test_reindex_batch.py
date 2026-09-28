@@ -202,6 +202,14 @@ def test_index_without_doc_ids_is_refused(model, doc):
         (lambda d: d["articles"][0].update(article_number="1"), "positive int"),
         (lambda d: d["articles"][0].update(text_ar="x" * 6001), "failed article split"),
         (lambda d: d.update(articles=[]), "non-empty"),
+        (lambda d: d["articles"][1].update(text_ar="<official text of Article 2>"), "placeholder"),
+        (
+            lambda d: d["articles"][0].update(text_en="<full official text of Article 1>"),
+            "placeholder",
+        ),
+        (lambda d: d["articles"][0].update(text_ar="TODO"), "placeholder"),
+        (lambda d: d["articles"][0].update(text_ar="نص قصير"), "stub"),
+        (lambda d: d.update(source="<URL or Official Gazette issue>"), "source"),
     ],
 )
 def test_invalid_documents_are_rejected(doc, mutate, message):

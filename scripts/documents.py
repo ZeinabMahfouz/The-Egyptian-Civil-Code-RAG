@@ -33,6 +33,11 @@ from egyptian_civil_code_rag.query import CIVIL_CODE_DOC_ID
 # Same threshold as tests/test_corpus_validation.py: a record past this
 # almost certainly means a failed article split, not a genuinely long article.
 MAX_REASONABLE_TEXT_LENGTH = 6000
+# Shortest real article text is well above this; anything shorter is a
+# stub, a truncated paste, or a leftover template value.
+MIN_REASONABLE_AR_LENGTH = 20
+# Template placeholders like "<official text of Article 2>" or "TODO".
+RE_PLACEHOLDER = re.compile(r"<[^<>]{0,120}>|\bTODO\b|\bTBD\b|\.\.\.$|…$", re.IGNORECASE)
 RE_DOC_ID = re.compile(r"^[a-z0-9][a-z0-9_]{2,63}$")
 REQUIRED_DOC_FIELDS = {"doc_id", "title", "citation_prefix", "source", "articles"}
 REQUIRED_ARTICLE_FIELDS = {
@@ -70,6 +75,10 @@ def validate_document(doc: dict) -> None:
             f"doc_id {CIVIL_CODE_DOC_ID!r} is reserved -- the Civil Code is rebuilt "
             "from the PDF by `dvc repro`, never through this path"
         )
+    if RE_PLACEHOLDER.search(doc["source"].strip()) or not doc["source"].strip():
+        raise DocumentValidationError(
+            f"[{doc_id}] 'source' must say where the text was taken from (URL / gazette issue)"
+        )
     if not doc["citation_prefix"].strip():
         raise DocumentValidationError(f"[{doc_id}] citation_prefix must not be empty")
 
@@ -92,6 +101,17 @@ def validate_document(doc: dict) -> None:
         seen.add(n)
         if not rec["text_ar"].strip():
             raise DocumentValidationError(f"[{doc_id}] article {n}: empty text_ar")
+        for field in ("text_ar", "text_en"):
+            if RE_PLACEHOLDER.search(rec[field].strip()):
+                raise DocumentValidationError(
+                    f"[{doc_id}] article {n}: {field} looks like a template placeholder or "
+                    f"truncated paste ({rec[field].strip()[:60]!r}) -- paste the official text"
+                )
+        if len(rec["text_ar"].strip()) < MIN_REASONABLE_AR_LENGTH:
+            raise DocumentValidationError(
+                f"[{doc_id}] article {n}: text_ar is only {len(rec['text_ar'].strip())} chars "
+                f"(< {MIN_REASONABLE_AR_LENGTH}) -- likely a stub, not real article text"
+            )
         for field in ("text_ar", "text_en"):
             if len(rec[field]) > MAX_REASONABLE_TEXT_LENGTH:
                 raise DocumentValidationError(
