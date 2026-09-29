@@ -57,8 +57,8 @@ stages:
       size: 1300409
     - path: scripts/chunk_corpus.py
       hash: md5
-      md5: 2bac66e7cb0ab6eaa09e57d7979c0087
-      size: 9837
+      md5: 06a048dc8cf5ea636210a1a7034b9e60
+      size: 10271
     params:
       params.yaml:
         chunking.dedupe_repealed_ranges: true
@@ -70,18 +70,29 @@ stages:
       size: 1351941
   embed_index:
     cmd: python scripts/embed_and_index.py --chunks data/interim/chunks.json
-      --params params.yaml
+      --params params.yaml --docs-dir data/documents
     deps:
+    - path: data/documents
+      hash: md5
+      md5: 6e9815368eaf5b88e2266402ba307a98.dir
+      size: 1862
+      nfiles: 2
     - path: data/interim/chunks.json
       hash: md5
       md5: d8a9616908de58e16a26de5fb3b53b06
       size: 1351941
+    - path: scripts/documents.py
+      hash: md5
+      md5: 5e2759083a3f874b2827f5bc9ea89547
+      size: 4733
     - path: scripts/embed_and_index.py
       hash: md5
-      md5: c32c9becbad09b5c06d4b469301b23ed
-      size: 3801
+      md5: 0348092b71c7114aaf57096cf527e311
+      size: 5786
     params:
       params.yaml:
+        chunking.dedupe_repealed_ranges: true
+        chunking.paragraph_split_threshold_chars: 700
         embedding.batch_size: 32
         embedding.model_name: BAAI/bge-m3
         qdrant.collection_name: egyptian_civil_code
@@ -89,6 +100,6 @@ stages:
     outs:
     - path: data/processed/qdrant_storage
       hash: md5
-      md5: a5432fb463d62bd733fcb3a7258b573f.dir
-      size: 24338998
+      md5: 02717441cf03bba3855db50c39afa69a.dir
+      size: 24691254
       nfiles: 3
