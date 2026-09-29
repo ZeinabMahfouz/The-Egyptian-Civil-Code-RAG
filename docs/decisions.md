@@ -643,3 +643,53 @@ answers quickly and wrongly. For this RAG system that is the more likely
 failure mode, for example a retrieval regression or a worse prompt. That
 gate is RAGAS faithfulness on the canary image (stage 0 in the README).
 It becomes real when the GPU-based RAGAS run and its CI gate land.
+
+---
+
+## Serving: BentoML service with a separate serving environment
+
+**Decision:** `src/egyptian_civil_code_rag/service.py` wraps the same
+`RAGQueryEngine` and `PIIGuard` as the FastAPI app in a BentoML service
+with an async `/ask`. It is started with
+`bentoml serve egyptian_civil_code_rag.service:CivilCodeRAG`. It has its own
+environment (`.venv-serve`, `requirements-serve.txt`), separate from the
+pipeline's `requirements.txt`.
+
+**Why a separate environment:** serving does not need RAGAS, DVC or MLflow,
+and those pins already blocked `guardrails-ai` (see the PII decision). One
+environment per role keeps each dependency set solvable. BentoML now has an
+environment where it does not compete with RAGAS's `openai<2` pin. The
+model weights are shared through `~/.cache/huggingface`, so a second
+environment does not download them again.
+
+**Design details:**
+- **`workers=1`:** local (embedded) Qdrant allows one process per storage
+  folder, so a second worker would fail on the index lock. Concurrency comes
+  from async request handling, not from extra processes.
+- **Blocking work runs in a thread:** `engine.ask` (embedding plus
+  generation) runs under `asyncio.to_thread`, so the event loop keeps
+  serving `/health` and queuing requests while a generation is in progress.
+- **One generation at a time (`asyncio.Lock`):** on CPU, parallel
+  generations compete for the same cores and all finish later. Requests
+  queue instead, up to `max_concurrency=8`.
+- **`timeout=600`:** BentoML's default of 60 s is shorter than a CPU
+  generation.
+- **Same contract as FastAPI:** `POST /ask {"question": ...}` returns
+  `answer`, `sources` and `pii_redacted`, plus `release`. Two differences:
+  an empty question returns 400 (BentoML's `InvalidArgument`) rather than
+  FastAPI's 422, and `/health` is a POST, because BentoML APIs are POST.
+
+**Verified live (CPU, Qwen3-1.7B):**
+- "What does Article 147 say?" retrieved Article 147 first, and the
+  answer matched the official English text almost word for word.
+- An Arabic question containing a national ID returned
+  `pii_redacted: ["EG_NATIONAL_ID"]` and an Arabic answer about Article 147.
+  The answer had some garbled Arabic wording, a known limit of the 1.7B
+  model that is logged for the Qwen3-8B comparison.
+- A whitespace-only question returned 400.
+- `/health` reported 2197 documents indexed.
+- The Swagger UI at `localhost:3000` also works as a manual test client.
+
+**Next:** swap the generation backend to vLLM + Qwen3-8B (GPU session),
+add streaming, and consider installing `guardrails-ai` in this serving
+environment, now that it no longer shares an environment with RAGAS.

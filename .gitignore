@@ -221,3 +221,4 @@ mlruns/
 
 # Canary rollout: nginx access logs
 deploy/canary/logs/
+.venv-serve/
