@@ -529,3 +529,64 @@ the retrieval):**
   context precision should measure this in the GPU session.
 - **Language drift:** a fragment of Chinese ("享有以下权利") appeared in an
   Arabic answer. It is recorded as a baseline to compare against Qwen3-8B.
+
+---
+
+## PII guardrails on /ask: own Egyptian-aware detector, redaction both ways
+
+**Decision:** `src/egyptian_civil_code_rag/pii.py` detects Egyptian
+national IDs, Egyptian mobile numbers, EG IBANs, card numbers
+(Luhn-checked) and emails. It matches Western and Arabic-Indic digits.
+`/ask` redacts the **question** before retrieval and generation, and the
+**answer** before it is returned. Matches are replaced with `[ENTITY]`,
+and the response lists what was removed in `pii_redacted`.
+
+**Why a custom detector:** Presidio-based detectors, including Guardrails
+Hub's `DetectPII`, are built around English entities. They have no
+recognizer for a 14-digit Egyptian national ID or an 01x mobile number,
+and they do not treat ٠١٢٣٤٥٦٧٨٩ as digits. For this project's users, that
+is most of the PII that matters.
+
+**Why redact the question as well:** PII in a question would otherwise
+reach the embedding model and the LLM prompt, and every Langfuse trace
+once tracing is added. The checklist only requires filtering responses.
+Filtering the input is what actually keeps PII out of the system.
+
+**False positives are the main risk in a legal corpus:** questions and
+answers are full of article, law and year numbers ("Article 147", "Law
+181 of 2018", "Articles 54-80"). Each pattern is anchored on a structure
+that those numbers cannot match: a national ID needs a valid century and
+birth date, a phone number needs the 01[0125] prefix and 11 digits, and a
+card number must pass Luhn. `tests/test_pii.py` includes a set of
+legal-text negatives.
+
+**Guardrails library: optional, because of a dependency conflict.** The
+detector is wrapped as a Guardrails AI validator (`EgyptianPII`, applied
+with `OnFailAction.FIX`), but `guardrails-ai` cannot be installed next to
+this repo's pinned stack. This was checked with `uv pip compile` against
+`requirements.txt`:
+- guardrails-ai 0.8.x-0.10.x pin `click<=8.2.0`, but `huggingface-hub
+  1.32` needs `click>=8.4.2`.
+- guardrails-ai 0.11.0 needs `openai>=2`, but `instructor==1.3.2` (pulled
+  in by RAGAS) needs `openai<2`.
+
+So `PIIGuard` uses the Guardrails `Guard` when the library is installed
+and calls the same detector directly when it is not. The output is
+identical in both cases, and both paths are tested. Plan: add
+`guardrails-ai` to the serving-only environment when BentoML splits
+serving requirements from pipeline requirements, since serving does not
+need RAGAS.
+
+**Found while testing the wrapper:** Guardrails sends telemetry
+(OpenTelemetry spans to an AWS execute-api host) on every `validate()`
+by default. This was observed directly as outbound DNS lookups in
+testing. A PII guard must never send data out, so `PIIGuard` disables it
+in code rather than relying on a `~/.guardrailsrc` that Docker and CI
+would not have. A regression test asserts that no network lookups happen.
+
+**Verified live:** asking "رقمي القومي 29801011234567 وموبايلي 01012345678،
+هل يحق لي فسخ العقد؟" returned `"pii_redacted": ["EG_NATIONAL_ID",
+"EG_PHONE"]`, and neither number appeared in the answer. Side effect: the
+1.7B model focused on the `[EG_NATIONAL_ID]` / `[EG_PHONE]` tags instead
+of the legal question. A prompt instruction to ignore redaction tags is
+planned for the Qwen3-8B prompt work.

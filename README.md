@@ -187,6 +187,10 @@ done.
       `dvc repro` rebuilds the same result from `data/documents/`. See
       docs/decisions.md for the ID-collision and stale-chunk issues it
       had to handle
+- [x] PII guardrails on `/ask` (`src/egyptian_civil_code_rag/pii.py`):
+      Egyptian national ID / mobile / IBAN / card / email, Arabic-Indic
+      digits, redacted in both the question and the answer; response lists
+      `pii_redacted`. See docs/decisions.md
 - [ ] MLflow experiment tracking (chunking/embedding parameter sweeps)
 - [ ] BentoML serving
 - [ ] Langfuse observability
