@@ -218,3 +218,6 @@ __marimo__/
 .streamlit/secrets.toml
 mlflow.db
 mlruns/
+
+# Canary rollout: nginx access logs
+deploy/canary/logs/

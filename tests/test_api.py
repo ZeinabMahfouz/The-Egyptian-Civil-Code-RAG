@@ -67,6 +67,15 @@ def test_health_endpoint():
     data = resp.json()
     assert data["status"] == "healthy"
     assert data["documents_indexed"] == 42
+    assert data["release"] == "dev"  # APP_RELEASE unset in tests
+
+
+def test_every_response_names_its_release():
+    # nginx logs this header per request -- it's how canary traffic is
+    # told apart from stable in deploy/canary/canary_report.py
+    client = make_client()
+    assert client.get("/health").headers["X-App-Release"] == "dev"
+    assert client.post("/ask", json={"question": "Q?"}).headers["X-App-Release"] == "dev"
 
 
 # --- PII guardrails ---------------------------------------------------------

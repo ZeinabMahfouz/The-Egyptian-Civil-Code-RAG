@@ -590,3 +590,56 @@ would not have. A regression test asserts that no network lookups happen.
 1.7B model focused on the `[EG_NATIONAL_ID]` / `[EG_PHONE]` tags instead
 of the legal question. A prompt instruction to ignore redaction tags is
 planned for the Qwen3-8B prompt work.
+
+---
+
+## Canary rollout: nginx weighted split, gates computed from its access log
+
+**Decision:** `deploy/canary/` runs two CI-built images (stable and canary,
+each pinned by git SHA) behind nginx with a weighted `upstream`. Each API
+instance labels its responses with `X-App-Release`, which nginx writes to a
+JSON access log. `canary_report.py` turns that log into pass/fail promotion
+gates: error rate, p95 latency, and a minimum amount of canary traffic.
+
+**Why nginx and not a service mesh:** the course checklist specifies an nginx
+canary config, and a single-host Docker Compose deployment has nothing for
+Istio, Argo Rollouts or similar tools to manage. The official nginx image's
+`templates/` + envsubst mechanism means the weights come from `.env`, so
+moving to the next stage is a config change plus an nginx-only restart. The
+APIs keep their loaded models.
+
+**Design details that came from testing, not assumptions:**
+- **Rollback can't use `weight=0`,** because nginx rejects it. The canary
+  line takes `${CANARY_STATE}`, which is empty in normal operation and
+  `down` to remove the canary from rotation.
+- **`proxy_next_upstream off`:** by default nginx retries a failed request
+  on the other upstream. That is kind to users, but it would erase the
+  canary's errors from the log, so a broken canary would pass the error
+  gate. Retries are therefore off.
+- **Header-less failures:** an unhandled 500 or an nginx 502 carries no
+  `X-App-Release`. Attributing requests by header alone would file canary
+  crashes under "unknown". The report learns which upstream address serves
+  which release from the successful responses and attributes failures by
+  address. There is a test for this.
+- **The split is exact, but only while both upstreams are healthy.**
+  Measured with local nginx and two instances of the real FastAPI app (fake
+  engine): 25 of 500 requests (5.0%) went to the canary at 95/5. An earlier
+  run where the upstreams had been failing showed 6.8%, because `max_fails`
+  state skews routing until `fail_timeout` expires. Gates should therefore
+  be judged on a window that starts after the stage is stable.
+- **Verified live:** after the canary process was killed mid-run, the
+  report attributed its 502s correctly (16.7% canary error rate against 0%
+  for stable), both the error and traffic gates failed, and it exited 1.
+  With `CANARY_STATE=down` and a reload, 200 of 200 requests went to stable.
+
+**Not tested here:** the full `docker-compose.canary.yml` with two real
+model-loading API containers. The compose file validates with
+`docker compose config`, and nginx was run from the same template with
+upstreams substituted for local processes. The full stack needs about
+12 GB of RAM.
+
+**Answer-quality gate:** error rate and latency cannot catch a release that
+answers quickly and wrongly. For this RAG system that is the more likely
+failure mode, for example a retrieval regression or a worse prompt. That
+gate is RAGAS faithfulness on the canary image (stage 0 in the README).
+It becomes real when the GPU-based RAGAS run and its CI gate land.
