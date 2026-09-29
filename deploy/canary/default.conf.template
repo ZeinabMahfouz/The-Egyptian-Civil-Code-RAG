@@ -1,0 +1,44 @@
+# Canary load balancer for the /ask API.
+#
+# The official nginx image runs envsubst on /etc/nginx/templates/*.template
+# at startup, substituting only variables that are set in the environment.
+# So ${STABLE_WEIGHT} / ${CANARY_WEIGHT} / ${CANARY_STATE} come from
+# docker-compose.canary.yml, while nginx's own $upstream_addr etc. are left
+# alone. Changing the split = edit .env, then `docker compose ... up -d nginx`.
+
+upstream rag_api {
+    # Weighted round-robin is deterministic: with 95/5, exactly 5 of every
+    # 100 requests go to the canary (not "about 5%").
+    server api-stable:8000 weight=${STABLE_WEIGHT} max_fails=3 fail_timeout=30s;
+    # CANARY_STATE=down takes the canary out of rotation (rollback) without
+    # removing the line -- nginx rejects weight=0.
+    server api-canary:8000 weight=${CANARY_WEIGHT} max_fails=3 fail_timeout=30s ${CANARY_STATE};
+}
+
+# One JSON line per request: which release answered, status, latency.
+# deploy/canary/canary_report.py turns this into the promotion gate numbers.
+log_format canary escape=json
+    '{"time":"$time_iso8601","method":"$request_method","uri":"$uri",'
+    '"status":$status,"request_time":$request_time,'
+    '"upstream":"$upstream_addr","release":"$upstream_http_x_app_release"}';
+
+server {
+    listen 80;
+
+    access_log /var/log/nginx/canary_access.log canary;
+
+    # CPU generation takes tens of seconds to minutes; don't cut it off.
+    proxy_read_timeout 600s;
+    proxy_send_timeout 600s;
+
+    # Don't silently retry a failed canary request on stable: the user would
+    # be fine, but the canary's errors would vanish from the log and the
+    # promotion gate would pass a broken release.
+    proxy_next_upstream off;
+
+    location / {
+        proxy_pass http://rag_api;
+        proxy_set_header Host $host;
+        proxy_set_header X-Request-ID $request_id;
+    }
+}

@@ -1,0 +1,61 @@
+# Canary rollout: stable + canary API behind an nginx weighted split.
+#
+#   cp deploy/canary/.env.example deploy/canary/.env   # set images + weights
+#   docker compose -f deploy/canary/docker-compose.canary.yml --env-file deploy/canary/.env up -d
+#   curl localhost:8080/health                          # through the balancer
+#
+# Images come from CI (build_and_push_image tags every main commit with its
+# git SHA), so "stable" and "canary" are two exact, immutable builds.
+#
+# Memory: each API container loads Qwen3-1.7B + BGE-M3 (~6GB RAM), so this
+# stack needs roughly twice what the single-container setup does. See
+# README "Canary rollout" for a lightweight routing check that avoids it.
+
+services:
+  api-stable:
+    image: ${STABLE_IMAGE:?set STABLE_IMAGE in deploy/canary/.env}
+    environment:
+      APP_RELEASE: ${STABLE_RELEASE:-stable}
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
+
+  api-canary:
+    image: ${CANARY_IMAGE:?set CANARY_IMAGE in deploy/canary/.env}
+    environment:
+      APP_RELEASE: ${CANARY_RELEASE:-canary}
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    environment:
+      STABLE_WEIGHT: ${STABLE_WEIGHT:-95}
+      CANARY_WEIGHT: ${CANARY_WEIGHT:-5}
+      CANARY_STATE: ${CANARY_STATE:-}
+    volumes:
+      - ./default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./logs:/var/log/nginx
+    depends_on:
+      # Don't route traffic until both releases have loaded their models.
+      api-stable:
+        condition: service_healthy
+      api-canary:
+        condition: service_healthy
+
+volumes:
+  # Shared model cache: weights are downloaded once and used by both releases.
+  hf_cache:

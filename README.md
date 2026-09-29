@@ -145,6 +145,64 @@ project's development environment is CPU-only (see
 without one. Swapping to vLLM + GPU is a planned follow-up, not yet
 done.
 
+## Canary rollout
+
+A new release does not replace the running one all at once. It is
+deployed next to it, and nginx sends it a small, fixed share of traffic
+while the two are compared. Everything is in `deploy/canary/`:
+
+| File | Purpose |
+|---|---|
+| `docker-compose.canary.yml` | `api-stable` + `api-canary` (two CI-built images, pinned by git SHA) behind `nginx` on port 8080 |
+| `default.conf.template` | Weighted upstream (`STABLE_WEIGHT` / `CANARY_WEIGHT`), JSON access log recording which release served each request |
+| `.env.example` | Images, release names, and the current stage's weights |
+| `canary_report.py` | Reads the access log, compares canary vs stable, exits 0 = promote / 1 = hold or roll back |
+
+Every API response carries an `X-App-Release` header, and `/health` includes
+`release`. That is how the log, and you, can tell which build answered.
+
+**Rollout stages:**
+
+| Stage | `STABLE_WEIGHT` / `CANARY_WEIGHT` | Minimum before moving on |
+|---|---|---|
+| 0. Pre-flight | - | CI green on the canary SHA; RAGAS faithfulness on the canary image >= 0.75 (the CI gate) |
+| 1. Canary 5% | 95 / 5 | >= 20 canary `/ask` requests and all `canary_report.py` gates pass |
+| 2. Canary 25% | 75 / 25 | gates pass again on the new window |
+| 3. Canary 50% | 50 / 50 | gates pass; spot-check 10 canary answers for correct citations |
+| 4. Promote | set `STABLE_IMAGE` to the canary SHA, `CANARY_STATE=down` | - |
+
+**Gates** (`canary_report.py`, adjustable by flag):
+
+- The canary's 5xx rate is at most the stable rate plus 1 percentage point.
+- The canary's `/ask` p95 latency is at most 1.2 times the stable p95.
+- There is enough canary traffic to judge.
+
+A failure that has no release header (an app crash or an nginx 502) is
+attributed by upstream address, so a crashing canary can't hide from the
+error gate.
+
+**Commands:**
+
+```bash
+cp deploy/canary/.env.example deploy/canary/.env      # fill in the two SHAs
+docker login ghcr.io                                   # GHCR images are private by default
+docker compose -f deploy/canary/docker-compose.canary.yml --env-file deploy/canary/.env up -d
+# ...send traffic to http://localhost:8080 ...
+python deploy/canary/canary_report.py deploy/canary/logs/canary_access.log
+# next stage: edit the weights in .env, then apply without restarting the APIs:
+docker compose -f deploy/canary/docker-compose.canary.yml --env-file deploy/canary/.env up -d nginx
+```
+
+**Rollback:** set `CANARY_STATE=down` in `.env` and re-run the last command.
+nginx then stops routing to the canary. The canary container keeps running
+so its logs can be inspected. If the canary crashes outright, `max_fails=3`
+takes it out of rotation automatically for 30 s at a time, which limits
+users to about 3 failed requests per window until you roll back.
+
+**Resource note:** each API container loads Qwen3-1.7B and BGE-M3 (about
+6 GB of RAM), so the full stack needs roughly twice the memory of the
+single-container setup.
+
 ## Status
 
 - [x] Data extraction: 1149/1149 articles, fully validated
@@ -191,6 +249,9 @@ done.
       Egyptian national ID / mobile / IBAN / card / email, Arabic-Indic
       digits, redacted in both the question and the answer; response lists
       `pii_redacted`. See docs/decisions.md
+- [x] Canary rollout (`deploy/canary/`): nginx weighted split between two
+      CI-built images, rollout stages + measurable promotion gates
+      (`canary_report.py`), rollback by config -- see "Canary rollout" above
 - [ ] MLflow experiment tracking (chunking/embedding parameter sweeps)
 - [ ] BentoML serving
 - [ ] Langfuse observability
