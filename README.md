@@ -85,6 +85,21 @@ params.yaml       tunable pipeline parameters (chunking thresholds, etc.)
 
 ## Reproducing this
 
+## Adding a legal document
+
+Additional laws are indexed alongside the Civil Code from `data/documents/`
+(the schema is in `scripts/documents.py`, and the folder has its own README).
+Copy the text from an official source and name that source in the file.
+
+```bash
+python scripts/reindex_batch.py --dry-run data/documents/<doc_id>.json   # validate only
+# stop the API first -- local Qdrant is single-process
+python scripts/reindex_batch.py data/documents/<doc_id>.json             # add or update
+```
+
+`dvc repro` rebuilds the same index from scratch, including every file in
+`data/documents/`.
+
 **Full pipeline, from source (rebuilds extraction -> chunking -> embedding -> index):**
 
 ```bash

@@ -470,3 +470,62 @@ validation guards; and exact lookup scoped to the Civil Code. The tests
 were confirmed to fail when each fix is reverted. The fixture is
 explicitly synthetic (`tests/fixtures/synthetic_law.json`); the real
 "new document" run uses a real law in `data/documents/`.
+---
+
+## First real additional document: what it exposed
+
+**Document:** Egyptian Consumer Protection Law No. 181 of 2018, Articles 1-2
+(`data/documents/consumer_protection_law_181_2018.json`), taken from the
+official PDF hosted by the Egyptian Economic Courts (elec.eecourts.gov.eg).
+Its purpose is the "batch re-indexing tested with at least one new document"
+checklist item. The document is small on purpose: the goal is to prove the
+incremental path end to end, not to extend the corpus.
+
+**Result:** `reindex_batch.py` added 2 points (2195 -> 2197). The Civil
+Code count did not change. For the query "ما هي حقوق المستهلك عند استخدام
+السلع والخدمات؟" the top two sources are Consumer Protection Law Articles 2
+and 1. Before the document was added, the same query returned only
+unrelated Civil Code articles (86, 804, 802), and the model correctly
+answered that it had no relevant information.
+
+**Problems found along the way. Each one is a failure the pipeline could
+not catch on its own:**
+
+1. **Placeholder text was embedded.** The first indexed version still
+   contained template values (`<official text of Article 2>`). Validation
+   only checked that `text_ar` was non-empty, so the placeholders were
+   embedded, and they were never retrieved (cosine similarity about 0.33
+   against the query, below every Civil Code article in the top 15).
+   Diagnosed by reading the stored payloads directly. Fix: `validate_document`
+   now rejects `<...>` placeholders, TODO/TBD, trailing ellipses, `text_ar`
+   under 20 characters, and a missing or placeholder `source`. Each case has
+   a test.
+2. **The first draft contradicted the real law.** An early hand-typed
+   version of Article 1 defined the consumer by "personal **or
+   professional**" needs. The official text says "**غير المهنية**"
+   (non-professional), which is the opposite meaning. The early Article 2
+   also did not match the official text. Only checking against the official
+   PDF caught this: nothing in the pipeline can detect a plausible but wrong
+   legal text. From now on every document in `data/documents/` must name
+   its source and be copied from it, not retyped.
+3. **Arabic PDF copy broke the لا ligature.** Copying from the PDF produced
+   "االختيار" and "األضرار" instead of "الاختيار" and "الأضرار": lam and
+   alef swapped. This is the same class of problem the Civil Code
+   extraction had to handle. The corrupted words were embedded and quoted
+   in answers. Fixed in the document with a regex (`ا([اأإآ])ل` -> `ال\1`),
+   then re-indexed. It is not yet enforced in validation. A future
+   improvement would be to reuse the extraction pipeline's Arabic
+   normalization for added documents.
+4. **Invalid JSON from raw line breaks.** Text pasted from the PDF brought
+   literal newlines into JSON strings, so the file would not load. Fixed by
+   re-serializing with `json.loads(..., strict=False)`.
+
+**Generation issues seen in the answer (the CPU dev model, Qwen3-1.7B, not
+the retrieval):**
+
+- **Citation misattribution:** the list of consumer rights comes from
+  Article 2, but every point was cited as Article 1. Retrieval returned the
+  right articles; the model cited them wrongly. RAGAS faithfulness and
+  context precision should measure this in the GPU session.
+- **Language drift:** a fragment of Chinese ("享有以下权利") appeared in an
+  Arabic answer. It is recorded as a baseline to compare against Qwen3-8B.
