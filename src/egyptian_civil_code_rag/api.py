@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Request
 from pydantic import BaseModel, field_validator
 
+from egyptian_civil_code_rag.pii import PIIGuard
 from egyptian_civil_code_rag.query import RAGQueryEngine
 
 DEV_MODEL_NAME = "Qwen/Qwen3-1.7B"
@@ -22,6 +23,9 @@ class AskRequest(BaseModel):
 class AskResponse(BaseModel):
     answer: str
     sources: list[str]
+    # PII entity types redacted from the question and/or answer, e.g.
+    # ["EG_NATIONAL_ID"]. Empty when nothing was found.
+    pii_redacted: list[str] = []
 
 
 class HealthResponse(BaseModel):
@@ -33,7 +37,8 @@ def get_engine(request: Request) -> RAGQueryEngine:
     return request.app.state.engine
 
 
-def create_app(engine: RAGQueryEngine | None = None) -> FastAPI:
+def create_app(engine: RAGQueryEngine | None = None, pii_guard: PIIGuard | None = None) -> FastAPI:
+    pii_guard = pii_guard or PIIGuard()
     if engine is not None:
         app = FastAPI(title="Egyptian Civil Code RAG")
         app.state.engine = engine
@@ -53,7 +58,14 @@ def create_app(engine: RAGQueryEngine | None = None) -> FastAPI:
 
     @app.post("/ask", response_model=AskResponse)
     def ask(payload: AskRequest, engine: RAGQueryEngine = Depends(get_engine)):
-        return engine.ask(payload.question)
+        question, q_found = pii_guard(payload.question)
+        result = engine.ask(question)
+        answer, a_found = pii_guard(result["answer"])
+        return {
+            "answer": answer,
+            "sources": result["sources"],
+            "pii_redacted": sorted(set(q_found) | set(a_found)),
+        }
 
     @app.get("/health", response_model=HealthResponse)
     def health(engine: RAGQueryEngine = Depends(get_engine)):
