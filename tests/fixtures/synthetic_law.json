@@ -1,0 +1,41 @@
+{
+  "doc_id": "synthetic_test_law",
+  "title": "SYNTHETIC TEST FIXTURE -- not a real law",
+  "citation_prefix": "Synthetic Test Law",
+  "source": "Hand-written test fixture for tests/test_reindex_batch.py. Not legal text; never index it into a real deployment.",
+  "articles": [
+    {
+      "article_number": 1,
+      "book": "",
+      "chapter": "",
+      "section": "",
+      "topic": "Scope",
+      "text_ar": "نص تجريبي للاختبار فقط: يسري هذا القانون على العقود التجريبية.",
+      "text_en": "Test-only text: this law applies to test contracts.",
+      "is_repealed": false,
+      "source_page": 1
+    },
+    {
+      "article_number": 2,
+      "book": "",
+      "chapter": "",
+      "section": "",
+      "topic": "Definitions",
+      "text_ar": "نص تجريبي للاختبار فقط: يقصد بالعقد التجريبي كل عقد يستخدم في الاختبار.",
+      "text_en": "Test-only text: a test contract means any contract used in testing.",
+      "is_repealed": false,
+      "source_page": 1
+    },
+    {
+      "article_number": 3,
+      "book": "",
+      "chapter": "",
+      "section": "",
+      "topic": "Effect",
+      "text_ar": "نص تجريبي للاختبار فقط: لا يترتب على العقد التجريبي أي أثر قانوني.",
+      "text_en": "",
+      "is_repealed": false,
+      "source_page": 2
+    }
+  ]
+}

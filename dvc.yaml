@@ -30,11 +30,15 @@ stages:
       - data/interim/chunks.json
 
   embed_index:
-    cmd: python scripts/embed_and_index.py --chunks data/interim/chunks.json --params params.yaml
+    cmd: python scripts/embed_and_index.py --chunks data/interim/chunks.json --params params.yaml --docs-dir data/documents
     deps:
       - scripts/embed_and_index.py
+      - scripts/documents.py
       - data/interim/chunks.json
+      - data/documents
     params:
+      - chunking.paragraph_split_threshold_chars
+      - chunking.dedupe_repealed_ranges
       - embedding.model_name
       - embedding.batch_size
       - qdrant.collection_name

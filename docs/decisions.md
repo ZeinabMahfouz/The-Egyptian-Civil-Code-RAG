@@ -405,3 +405,127 @@ intentionally deferred CI stage (see the RAGAS decision above) --
 everything else in the course's "lint -> test -> rebuild index -> push
 Docker image" checklist item is now real and green, not just
 configured.
+
+---
+
+## Batch re-indexing: an incremental path, with DVC still the source of truth
+
+**Decision:** `scripts/reindex_batch.py` adds or updates additional legal
+documents (`data/documents/<doc_id>.json`) in the existing Qdrant
+collection without rebuilding it. The `embed_index` DVC stage also
+indexes every file in `data/documents/`, so `dvc repro` produces the same
+index from tracked files. The incremental script is the operational
+shortcut. DVC remains the reproducible definition.
+
+**Problems found while designing it:**
+
+- **Point-ID collision.** Point IDs were `uuid5(chunk_id + lang)`, and
+  `chunk_id` is the article number. Article 1 of any new law would get
+  the same ID as Civil Code Article 1, and the upsert would overwrite the
+  Civil Code article without any error. The fix namespaces IDs by
+  `doc_id` for every document except the Civil Code. Civil Code IDs keep
+  their original form, which a test pins down.
+- **Exact article lookup crossed documents.** "What does Article 1
+  say?" would match Article 1 of every indexed law. The exact-lookup
+  filter is now scoped to `doc_id == egyptian_civil_code`. Semantic
+  search still spans all documents, and every citation names its
+  source law (`citation_prefix`), so a retrieved non-Civil-Code article
+  is never cited as the Civil Code.
+- **Stale chunks after an edit.** A plain upsert of an edited document
+  leaves points for removed articles in the index, where they can still
+  be retrieved and cited. The script upserts first and then deletes that
+  document's leftover IDs. It does not delete first, because a crash
+  between the two steps would then leave the document missing from the
+  index; with this order, a crash leaves old and new points side by side.
+- **Mixed embedding spaces.** If `params.yaml`'s embedding model changes
+  and the base index is not rebuilt, new vectors would be added to an
+  index built by another model. The script checks that the model's
+  dimension matches the index and refuses to run on a mismatch. This
+  catches a model swap only when the dimension also changes; a full
+  `dvc repro` is the real fix.
+
+**Guards:** the script validates every input file before it touches the
+index (schema, positive integer article numbers without duplicates,
+non-empty Arabic text, and the same 6000-char split-failure threshold as
+the corpus gate). The Civil Code's `doc_id` is reserved. The Civil
+Code's point count is checked before and after the run and must not
+change. The engine refuses to start on an index that has no `doc_id`
+payloads. Without that check, an index built before this change would
+silently turn exact lookup back into pure semantic search, which is the
+Article 147 bug above.
+
+**Known limitation:** local (embedded) Qdrant allows only one process per
+storage folder, so the API must be stopped while re-indexing. This was
+confirmed live: the script fails fast with a hint rather than after the
+model load. Re-indexing while the API keeps serving would need Qdrant in
+server mode. That fits the BentoML/serving work, but it is not done yet.
+
+**Tested:** `tests/test_reindex_batch.py` runs against in-memory Qdrant
+with a deterministic fake embedder, so CI's `test` job runs it without
+downloading a model. It covers: a new document is added and Civil Code
+IDs, payloads and vectors are byte-identical; citation prefix; ID
+collision; re-runs are idempotent; an edited document drops removed
+articles; edited text is re-embedded; the dimension, legacy-index and
+validation guards; and exact lookup scoped to the Civil Code. The tests
+were confirmed to fail when each fix is reverted. The fixture is
+explicitly synthetic (`tests/fixtures/synthetic_law.json`); the real
+"new document" run uses a real law in `data/documents/`.
+---
+
+## First real additional document: what it exposed
+
+**Document:** Egyptian Consumer Protection Law No. 181 of 2018, Articles 1-2
+(`data/documents/consumer_protection_law_181_2018.json`), taken from the
+official PDF hosted by the Egyptian Economic Courts (elec.eecourts.gov.eg).
+Its purpose is the "batch re-indexing tested with at least one new document"
+checklist item. The document is small on purpose: the goal is to prove the
+incremental path end to end, not to extend the corpus.
+
+**Result:** `reindex_batch.py` added 2 points (2195 -> 2197). The Civil
+Code count did not change. For the query "ما هي حقوق المستهلك عند استخدام
+السلع والخدمات؟" the top two sources are Consumer Protection Law Articles 2
+and 1. Before the document was added, the same query returned only
+unrelated Civil Code articles (86, 804, 802), and the model correctly
+answered that it had no relevant information.
+
+**Problems found along the way. Each one is a failure the pipeline could
+not catch on its own:**
+
+1. **Placeholder text was embedded.** The first indexed version still
+   contained template values (`<official text of Article 2>`). Validation
+   only checked that `text_ar` was non-empty, so the placeholders were
+   embedded, and they were never retrieved (cosine similarity about 0.33
+   against the query, below every Civil Code article in the top 15).
+   Diagnosed by reading the stored payloads directly. Fix: `validate_document`
+   now rejects `<...>` placeholders, TODO/TBD, trailing ellipses, `text_ar`
+   under 20 characters, and a missing or placeholder `source`. Each case has
+   a test.
+2. **The first draft contradicted the real law.** An early hand-typed
+   version of Article 1 defined the consumer by "personal **or
+   professional**" needs. The official text says "**غير المهنية**"
+   (non-professional), which is the opposite meaning. The early Article 2
+   also did not match the official text. Only checking against the official
+   PDF caught this: nothing in the pipeline can detect a plausible but wrong
+   legal text. From now on every document in `data/documents/` must name
+   its source and be copied from it, not retyped.
+3. **Arabic PDF copy broke the لا ligature.** Copying from the PDF produced
+   "االختيار" and "األضرار" instead of "الاختيار" and "الأضرار": lam and
+   alef swapped. This is the same class of problem the Civil Code
+   extraction had to handle. The corrupted words were embedded and quoted
+   in answers. Fixed in the document with a regex (`ا([اأإآ])ل` -> `ال\1`),
+   then re-indexed. It is not yet enforced in validation. A future
+   improvement would be to reuse the extraction pipeline's Arabic
+   normalization for added documents.
+4. **Invalid JSON from raw line breaks.** Text pasted from the PDF brought
+   literal newlines into JSON strings, so the file would not load. Fixed by
+   re-serializing with `json.loads(..., strict=False)`.
+
+**Generation issues seen in the answer (the CPU dev model, Qwen3-1.7B, not
+the retrieval):**
+
+- **Citation misattribution:** the list of consumer rights comes from
+  Article 2, but every point was cited as Article 1. Retrieval returned the
+  right articles; the model cited them wrongly. RAGAS faithfulness and
+  context precision should measure this in the GPU session.
+- **Language drift:** a fragment of Chinese ("享有以下权利") appeared in an
+  Arabic answer. It is recorded as a baseline to compare against Qwen3-8B.

@@ -5,11 +5,15 @@ from typing import Callable
 
 import yaml
 from qdrant_client import QdrantClient
-from qdrant_client.models import FieldCondition, Filter, MatchAny
+from qdrant_client.models import FieldCondition, Filter, MatchAny, MatchValue
 from sentence_transformers import SentenceTransformer
 
 DEFAULT_TOP_K_RAW = 8  # raw Qdrant hits fetched before dedup
 DEFAULT_TOP_K_DISTINCT = 3  # distinct articles kept as context after dedup
+
+# Every indexed point carries a doc_id payload. The Civil Code's is fixed;
+# additional laws added via scripts/reindex_batch.py get their own.
+CIVIL_CODE_DOC_ID = "egyptian_civil_code"
 
 AR_DIGITS = "٠١٢٣٤٥٦٧٨٩"
 EN_DIGITS = "0123456789"
@@ -40,6 +44,25 @@ class RAGQueryEngine:
         self.client = QdrantClient(path=params["qdrant"]["storage_path"])
         self.collection = params["qdrant"]["collection_name"]
         self.generate_fn = generate_fn
+        self._check_index_has_doc_ids()
+
+    def _check_index_has_doc_ids(self):
+        """Exact article lookup filters on doc_id == Civil Code. An index
+        built before doc_id existed would make that filter match nothing,
+        silently regressing "What does Article 147 say?" back to pure
+        semantic search -- so refuse to start instead."""
+        civil_code_points = self.client.count(
+            collection_name=self.collection,
+            count_filter=Filter(
+                must=[FieldCondition(key="doc_id", match=MatchValue(value=CIVIL_CODE_DOC_ID))]
+            ),
+        ).count
+        if civil_code_points == 0:
+            raise RuntimeError(
+                f"No points with doc_id={CIVIL_CODE_DOC_ID!r} in collection "
+                f"'{self.collection}'. The index predates the doc_id payload field -- "
+                "rebuild it with `dvc repro` (and `dvc push` so CI/Docker get it too)."
+            )
 
     def retrieve(
         self,
@@ -56,8 +79,13 @@ class RAGQueryEngine:
             exact_hits = self.client.query_points(
                 collection_name=self.collection,
                 query=query_vec,
+                # Scoped to the Civil Code: "Article 1" must not also match
+                # Article 1 of every other indexed law.
                 query_filter=Filter(
-                    must=[FieldCondition(key="article_numbers", match=MatchAny(any=referenced))]
+                    must=[
+                        FieldCondition(key="article_numbers", match=MatchAny(any=referenced)),
+                        FieldCondition(key="doc_id", match=MatchValue(value=CIVIL_CODE_DOC_ID)),
+                    ]
                 ),
                 limit=top_k_raw,
             ).points
@@ -143,7 +171,5 @@ if __name__ == "__main__":
         print(f"\n{'=' * 70}\nQ: {q}\n{'=' * 70}")
         result = engine.ask(q)
         print(json.dumps(result, ensure_ascii=False, indent=2))
-
-    engine.close()
 
     engine.close()

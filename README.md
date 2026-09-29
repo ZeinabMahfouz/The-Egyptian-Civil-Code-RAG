@@ -69,7 +69,9 @@ data/
   raw/            source PDF, DVC-tracked
   interim/        pipeline intermediates (civil_code.json, chunks.json)
   processed/      pipeline outputs -- Qdrant vector index (data/processed/qdrant_storage)
+  documents/      additional legal documents indexed alongside the Civil Code
 scripts/          pipeline code only (extract_corpus.py, chunk_corpus.py,
+                  embed_and_index.py, reindex_batch.py, documents.py,
                   topic_overrides.json, manual_patches.json)
 diagnostics/      one-off debugging/analysis scripts, not part of the
                   pipeline -- documents how failures were found and fixed
@@ -82,6 +84,21 @@ params.yaml       tunable pipeline parameters (chunking thresholds, etc.)
 ```
 
 ## Reproducing this
+
+## Adding a legal document
+
+Additional laws are indexed alongside the Civil Code from `data/documents/`
+(the schema is in `scripts/documents.py`, and the folder has its own README).
+Copy the text from an official source and name that source in the file.
+
+```bash
+python scripts/reindex_batch.py --dry-run data/documents/<doc_id>.json   # validate only
+# stop the API first -- local Qdrant is single-process
+python scripts/reindex_batch.py data/documents/<doc_id>.json             # add or update
+```
+
+`dvc repro` rebuilds the same index from scratch, including every file in
+`data/documents/`.
 
 **Full pipeline, from source (rebuilds extraction -> chunking -> embedding -> index):**
 
@@ -165,6 +182,11 @@ done.
       repealed-status checks (including individual articles inside a
       repealed range, not just the range itself), and out-of-corpus
       edge cases
+- [x] Batch re-indexing (`scripts/reindex_batch.py`): adds or updates a
+      document in the live index without re-embedding the Civil Code;
+      `dvc repro` rebuilds the same result from `data/documents/`. See
+      docs/decisions.md for the ID-collision and stale-chunk issues it
+      had to handle
 - [ ] MLflow experiment tracking (chunking/embedding parameter sweeps)
 - [ ] BentoML serving
 - [ ] Langfuse observability
