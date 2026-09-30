@@ -223,6 +223,25 @@ curl -X POST http://localhost:3000/ask -H "Content-Type: application/json" \
      -d '{"question": "What does Article 147 say?"}'
 curl -X POST http://localhost:3000/health
 ```
+## Observability (Langfuse)
+
+Every `/ask` is traced to a self-hosted Langfuse instance when its keys are set:
+
+```bash
+# Langfuse itself: official compose file, outside this repo
+git clone https://github.com/langfuse/langfuse.git ~/langfuse && cd ~/langfuse
+docker compose up -d                       # UI at http://localhost:3000
+
+# this repo: put the project's API keys in .env (git-ignored)
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_BASE_URL=http://localhost:3000
+
+set -a; source .env; set +a
+uvicorn egyptian_civil_code_rag.api:app --port 8000
+```
+
+![Langfuse trace of one /ask request](reports/langfuse_trace.png)
 
 - [x] Data extraction: 1149/1149 articles, fully validated
 - [x] Corpus validation: automated pytest gate, wired into DVC
@@ -273,4 +292,6 @@ curl -X POST http://localhost:3000/health
       (`canary_report.py`), rollback by config -- see "Canary rollout" above
 - [ ] MLflow experiment tracking (chunking/embedding parameter sweeps)
 - [x] BentoML serving
-- [ ] Langfuse observability
+- [x] Langfuse tracing (self-hosted): every `/ask` creates a trace with
+      spans for PII check, retrieval, generation (with token usage) and
+      output PII check; raw PII never enters a trace. See docs/decisions.md

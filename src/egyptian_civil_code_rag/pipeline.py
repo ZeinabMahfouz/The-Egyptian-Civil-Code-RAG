@@ -1,21 +1,3 @@
-"""The traced /ask pipeline, shared by the FastAPI app and the BentoML service.
-
-One Langfuse trace per request, with a span for every stage:
-
-    ask                         (span)       redacted question -> answer + sources
-    |- pii-input                (guardrail)  entity types found in the question
-    |- retrieve                 (retriever)  cited articles + similarity scores
-    |- generate                 (generation) prompt -> raw answer, model, token usage
-    `- pii-output               (guardrail)  entity types found in the answer
-
-Privacy rule: the *raw* question never enters a trace. PII is redacted
-first, and every span only ever sees the redacted text -- otherwise
-Langfuse would become the place where national IDs get stored.
-
-Tracing is off unless LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY are set,
-so tests, CI and anyone running without a Langfuse server are unaffected.
-"""
-
 import os
 from dataclasses import dataclass
 
@@ -27,8 +9,6 @@ NO_CONTEXT_ANSWER = "No relevant articles found."
 
 
 def make_langfuse(**overrides) -> Langfuse:
-    """Langfuse client configured from the environment:
-    LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY / LANGFUSE_HOST."""
     enabled = bool(os.environ.get("LANGFUSE_PUBLIC_KEY") and os.environ.get("LANGFUSE_SECRET_KEY"))
     kwargs = {
         "tracing_enabled": enabled,

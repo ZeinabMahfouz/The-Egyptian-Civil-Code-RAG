@@ -1,10 +1,3 @@
-"""Langfuse tracing: every /ask produces one trace with the expected spans,
-and no raw PII ever lands in any span.
-
-Spans are captured with OpenTelemetry's in-memory exporter instead of being
-sent to a Langfuse server -- so this runs in CI with no server and no keys.
-"""
-
 import json
 import uuid
 
@@ -25,16 +18,11 @@ PHONE = "01012345678"
 
 @pytest.fixture
 def traced(monkeypatch):
-    """A Langfuse client whose spans go to memory. Returns (langfuse, exporter)."""
-    # Langfuse keeps one client per public key for the whole process -- a
-    # second Langfuse(...) with the same key silently reuses the first one's
-    # exporter. A unique key per test gives each test its own exporter.
     monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", f"pk-lf-test-{uuid.uuid4()}")
     monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
     monkeypatch.setenv("LANGFUSE_HOST", "http://localhost:9")  # never contacted
     exporter = InMemorySpanExporter()
-    # Own TracerProvider (not the global one) so tests don't share state;
-    # Langfuse attaches its span processor to it, exporting to memory.
+
     lf = Langfuse(tracer_provider=TracerProvider(), span_exporter=exporter, tracing_enabled=True)
     yield lf, exporter
     lf.shutdown()
@@ -45,7 +33,6 @@ def spans_by_name(exporter):
 
 
 def all_span_text(exporter) -> str:
-    """Every attribute of every span, as one string -- for leak checks."""
     return json.dumps(
         [dict(s.attributes or {}) for s in exporter.get_finished_spans()],
         ensure_ascii=False,
@@ -61,7 +48,6 @@ def test_one_trace_with_all_stages(traced):
     lf.flush()
     spans = spans_by_name(exporter)
     assert {"ask", "pii-input", "retrieve", "generate", "pii-output"} <= set(spans)
-    # all five in the same trace, children under "ask"
     trace_ids = {s.context.trace_id for s in exporter.get_finished_spans()}
     assert len(trace_ids) == 1
     root = spans["ask"]
