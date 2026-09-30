@@ -11,18 +11,28 @@ class FakeQdrantClient:
         return Result()
 
 
+class FakeHit:
+    def __init__(self, citation="Egyptian Civil Code, Article 1"):
+        self.payload = {"citation": citation, "doc_id": "egyptian_civil_code", "lang": "en"}
+        self.score = 0.9
+
+
 class FakeEngine:
-    """Stands in for RAGQueryEngine: same interface (.ask, .client,
-    .collection), no model loading, no Qdrant connection."""
+    """Stands in for RAGQueryEngine: same interface (.retrieve,
+    .build_prompt, .generate_fn, .client, .collection), no model loading,
+    no Qdrant connection."""
 
     collection = "fake_collection"
     client = FakeQdrantClient()
 
-    def ask(self, question: str) -> dict:
-        return {
-            "answer": f"Fake answer to: {question}",
-            "sources": ["Egyptian Civil Code, Article 1"],
-        }
+    def retrieve(self, question: str):
+        return [FakeHit()]
+
+    def build_prompt(self, question: str, hits) -> str:
+        return f"PROMPT[{question}]"
+
+    def generate_fn(self, prompt: str) -> str:
+        return f"Fake answer to: {prompt}"
 
 
 def make_client():
@@ -82,15 +92,15 @@ def test_every_response_names_its_release():
 
 
 class RecordingEngine(FakeEngine):
-    """Echoes the question into the answer and records what it received,
-    so tests can check both sides of the redaction."""
+    """Records the question retrieval received (and echoes it into the
+    answer), so tests can check both sides of the redaction."""
 
     def __init__(self):
         self.received = []
 
-    def ask(self, question: str) -> dict:
+    def retrieve(self, question: str):
         self.received.append(question)
-        return super().ask(question)
+        return super().retrieve(question)
 
 
 def test_pii_in_question_never_reaches_engine():
@@ -108,8 +118,8 @@ def test_pii_in_question_never_reaches_engine():
 
 def test_pii_in_answer_is_redacted():
     class LeakyEngine(FakeEngine):
-        def ask(self, question):
-            return {"answer": "Contact 01012345678.", "sources": ["Egyptian Civil Code, Article 1"]}
+        def generate_fn(self, prompt):
+            return "Contact 01012345678."
 
     resp = TestClient(create_app(engine=LeakyEngine())).post("/ask", json={"question": "Hi?"})
     assert resp.json()["answer"] == "Contact [EG_PHONE]."
