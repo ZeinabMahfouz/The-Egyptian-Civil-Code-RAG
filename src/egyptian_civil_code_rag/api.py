@@ -1,7 +1,11 @@
+import json
 import os
+import queue
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request, Response
+from fastapi.responses import StreamingResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, field_validator
 
@@ -88,6 +92,62 @@ def create_app(
             "sources": result.sources,
             "pii_redacted": result.pii_redacted,
         }
+
+    @app.post("/ask/stream")
+    def ask_stream(payload: AskRequest, engine: RAGQueryEngine = Depends(get_engine)):
+        """Same pipeline as /ask, streamed as Server-Sent Events:
+
+            data: {"type": "token", "text": "..."}      (repeated, redacted text)
+            data: {"type": "done", "sources": [...], "pii_redacted": [...]}
+
+        Try it: curl -N -X POST localhost:8000/ask/stream -H 'Content-Type: application/json'
+                     -d '{"question": "What does Article 147 say?"}'
+        """
+        pipeline = TracedPipeline(engine, pii_guard, langfuse, service="fastapi")
+        events: queue.Queue = queue.Queue()
+
+        # The whole pipeline (Langfuse spans, metrics, generation) runs in one
+        # worker thread, start to finish. Iterating it directly from the
+        # response would hop threads between tokens, which breaks the
+        # thread-local context the tracing spans rely on.
+        def work():
+            try:
+                result = pipeline.ask(
+                    payload.question, on_chunk=lambda text: events.put(("token", text))
+                )
+                events.put(("done", result))
+            except Exception:
+                events.put(("error", None))
+
+        threading.Thread(target=work, daemon=True).start()
+
+        def sse(obj: dict) -> str:
+            return f"data: {json.dumps(obj, ensure_ascii=False)}\n\n"
+
+        def stream():
+            while True:
+                kind, value = events.get()
+                if kind == "token":
+                    yield sse({"type": "token", "text": value})
+                elif kind == "done":
+                    yield sse(
+                        {
+                            "type": "done",
+                            "sources": value.sources,
+                            "pii_redacted": value.pii_redacted,
+                        }
+                    )
+                    return
+                else:
+                    # Internal details stay in the logs/trace, not the client.
+                    yield sse({"type": "error", "message": "generation failed"})
+                    return
+
+        return StreamingResponse(
+            stream(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
 
     @app.get("/metrics", include_in_schema=False)
     def prometheus_metrics():

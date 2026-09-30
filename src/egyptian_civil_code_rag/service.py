@@ -11,6 +11,7 @@ Every request is traced to Langfuse when LANGFUSE_* env vars are set.
 
 import asyncio
 import os
+from collections.abc import AsyncGenerator
 
 import bentoml
 from bentoml.exceptions import InvalidArgument
@@ -71,6 +72,46 @@ class CivilCodeRAG:
             release=RELEASE,
             trace_id=result.trace_id,
         )
+
+    @bentoml.api
+    async def ask_stream(self, question: str) -> AsyncGenerator[str, None]:
+        """Streams the redacted answer as plain text chunks; the last chunk is
+        a line "\n[sources] ..." so a client gets citations at the end.
+
+        curl -N -X POST localhost:3000/ask_stream -H 'Content-Type: application/json'
+             -d '{"question": "What does Article 147 say?"}'
+        """
+        if not question or not question.strip():
+            raise InvalidArgument("question must not be empty")
+
+        loop = asyncio.get_running_loop()
+        chunks: asyncio.Queue = asyncio.Queue()
+
+        def on_chunk(text: str) -> None:  # called from the worker thread
+            loop.call_soon_threadsafe(chunks.put_nowait, ("token", text))
+
+        async def run() -> None:
+            try:
+                async with self._generate_lock:
+                    result = await asyncio.to_thread(self.pipeline.ask, question, on_chunk)
+                await chunks.put(("done", result))
+            except Exception:
+                await chunks.put(("error", None))
+
+        task = asyncio.create_task(run())
+        try:
+            while True:
+                kind, value = await chunks.get()
+                if kind == "token":
+                    yield value
+                elif kind == "done":
+                    yield "\n[sources] " + "; ".join(value.sources) + "\n"
+                    return
+                else:
+                    yield "\n[error] generation failed\n"
+                    return
+        finally:
+            await task
 
     @bentoml.api
     async def health(self) -> dict:
