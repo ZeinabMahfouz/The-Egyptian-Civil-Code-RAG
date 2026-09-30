@@ -204,6 +204,25 @@ users to about 3 failed requests per window until you roll back.
 single-container setup.
 
 ## Status
+## Serving with BentoML
+
+The BentoML service (`src/egyptian_civil_code_rag/service.py`) wraps the same
+RAG engine and PII guard behind an async `/ask`. It runs in its own
+environment, separate from the pipeline's (see docs/decisions.md):
+
+```bash
+python3 -m venv .venv-serve && source .venv-serve/bin/activate
+pip install -r requirements-serve.txt && pip install -e . --no-deps
+bentoml serve egyptian_civil_code_rag.service:CivilCodeRAG   # stop any other API first
+```
+
+Open http://localhost:3000 for the interactive API page, or:
+
+```bash
+curl -X POST http://localhost:3000/ask -H "Content-Type: application/json" \
+     -d '{"question": "What does Article 147 say?"}'
+curl -X POST http://localhost:3000/health
+```
 
 - [x] Data extraction: 1149/1149 articles, fully validated
 - [x] Corpus validation: automated pytest gate, wired into DVC
@@ -253,5 +272,5 @@ single-container setup.
       CI-built images, rollout stages + measurable promotion gates
       (`canary_report.py`), rollback by config -- see "Canary rollout" above
 - [ ] MLflow experiment tracking (chunking/embedding parameter sweeps)
-- [ ] BentoML serving
+- [x] BentoML serving
 - [ ] Langfuse observability

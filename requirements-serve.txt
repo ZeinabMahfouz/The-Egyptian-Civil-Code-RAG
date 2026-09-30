@@ -1,0 +1,10 @@
+# Serving-only environment for the BentoML service.
+# Kept separate from requirements.txt: serving doesn't need RAGAS/DVC/MLflow,
+# and their pins conflict with some serving libraries (see docs/decisions.md).
+--extra-index-url https://download.pytorch.org/whl/cpu
+bentoml
+torch
+transformers
+sentence-transformers==6.1.0
+qdrant-client==1.19.1
+pyyaml
