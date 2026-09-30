@@ -51,10 +51,15 @@ RETRIEVAL_TOP_SCORE = Histogram(
     ["service"],
     buckets=(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0),
 )
+# Labelled on purpose: a prometheus_client Gauge *without* labels is exported
+# as 0.0 from the moment it's created -- which read as "faithfulness 0%" on
+# the dashboard and fired the < 0.80 alert before any evaluation had run.
+# A labelled gauge has no sample until .labels(...).set() is called.
 RAGAS_FAITHFULNESS = Gauge(
     "rag_ragas_faithfulness",
-    "Mean RAGAS faithfulness of the latest evaluation run (reports/ragas_results.json). "
+    "Mean RAGAS faithfulness of the latest evaluation run. "
     "Absent until a run has produced real scores.",
+    ["source"],
 )
 
 
@@ -77,5 +82,5 @@ def load_ragas_faithfulness(path: Path = Path("reports/ragas_results.json")) -> 
     if not scores:
         return None
     mean = sum(scores) / len(scores)
-    RAGAS_FAITHFULNESS.set(mean)
+    RAGAS_FAITHFULNESS.labels(path.name).set(mean)
     return mean

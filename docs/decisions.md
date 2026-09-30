@@ -780,6 +780,16 @@ the faithfulness alert over an evaluation that never happened. So the gauge
 stays unset (no data, alert silent) until the GPU session produces real
 scores. There are tests for the null, real and missing-file cases.
 
+**Found live, on the first real dashboard:** the panel showed **0.00%**
+anyway. A `prometheus_client` `Gauge` without labels is exported as `0.0`
+from the moment it is created, whether or not `.set()` is ever called. So
+"no evaluation yet" was published as "faithfulness 0%", and
+`RagFaithfulnessLow` would have fired. The unit tests had checked the loader
+function but not what `/metrics` actually exports. The fix gives the gauge a
+`source` label, because a labelled gauge has no sample until
+`.labels(...).set()` is called. A regression test now checks the
+`/metrics` output itself, and it fails against the unlabelled version.
+
 **Latency buckets** run from 0.1 s to 300 s, so the same histogram covers
 both the CPU backend (about 30 s to 2 min) and the planned vLLM backend
 (seconds). The before/after comparison will then be one dashboard, not two.

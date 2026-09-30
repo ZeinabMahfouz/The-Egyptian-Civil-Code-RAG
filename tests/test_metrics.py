@@ -106,6 +106,30 @@ def test_metrics_endpoint_serves_prometheus_format():
     assert 'service="fastapi"' in resp.text
 
 
+def test_faithfulness_not_exported_before_any_real_run():
+    """Regression: an unlabelled Gauge is exported as 0.0 from creation, so
+    the dashboard showed "0.00%" and RagFaithfulnessLow fired with no
+    evaluation ever run. /metrics must carry no faithfulness *sample* until
+    real scores exist (HELP/TYPE lines are fine)."""
+    from prometheus_client import CollectorRegistry, Gauge, generate_latest
+
+    reg = CollectorRegistry()
+    g = Gauge("f", "doc", ["source"], registry=reg)  # same shape as the real gauge
+    assert (
+        "\nf{" not in generate_latest(reg).decode() and "\nf " not in generate_latest(reg).decode()
+    )
+    g.labels("x").set(0.5)
+    assert 'f{source="x"} 0.5' in generate_latest(reg).decode()
+
+    exposition = TestClient(create_app(engine=FakeEngine())).get("/metrics").text
+    samples = [
+        line
+        for line in exposition.splitlines()
+        if line.startswith("rag_ragas_faithfulness") and 'source="ragas.json"' not in line
+    ]
+    assert samples == []  # the repo's own null-score file must produce no sample
+
+
 def test_faithfulness_gauge_ignores_null_scores(tmp_path):
     # The CPU RAGAS run produced only nulls -- that must not become "0.0 faithfulness"
     f = tmp_path / "ragas.json"
@@ -117,7 +141,7 @@ def test_faithfulness_gauge_from_real_scores(tmp_path):
     f = tmp_path / "ragas.json"
     f.write_text(json.dumps([{"faithfulness": 0.9}, {"faithfulness": 0.7}, {"faithfulness": None}]))
     assert metrics.load_ragas_faithfulness(f) == pytest.approx(0.8)
-    assert value("rag_ragas_faithfulness") == pytest.approx(0.8)
+    assert value("rag_ragas_faithfulness", source="ragas.json") == pytest.approx(0.8)
 
 
 def test_faithfulness_gauge_missing_file(tmp_path):
