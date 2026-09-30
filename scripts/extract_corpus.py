@@ -17,7 +17,10 @@ EN_DIGITS = "0123456789"
 AR2EN = str.maketrans(AR_DIGITS, EN_DIGITS)
 
 
-RE_ARABIC_LETTER = re.compile(r"[\u0621-\u064A]")
+# Base Arabic letters, plus the presentation-form blocks: some PDFs map glyphs
+# to presentation forms (e.g. U+FEFB for the lam-alef ligature) rather than
+# base letters, and a word made of those must still be treated as Arabic.
+RE_ARABIC_LETTER = re.compile(r"[\u0621-\u064A\uFB50-\uFDFF\uFE70-\uFEFC]")
 
 
 def ar_to_int(s: str):
@@ -29,12 +32,25 @@ def reversed_int(n: int) -> int:
     return int(str(n)[::-1])
 
 
-def fix_arabic_word(token: str) -> str:
-    """Reverse character order for RTL-letter tokens only; leave
-    digit/punctuation-only tokens untouched (see module docstring)."""
-    if RE_ARABIC_LETTER.search(token):
-        return token[::-1]
-    return token
+def fix_arabic_word(word: dict) -> str:
+    """Visual -> logical order for an RTL word; digit/punctuation-only tokens
+    are left untouched (see module docstring).
+
+    Reverses the word's *glyphs*, not its characters. The lam-alef ligature
+    (لا / لأ / لإ / لآ) is a single glyph whose Unicode text is two
+    characters already in logical order. Reversing the word's text string
+    flipped those two as well, which turned every لا into ال: "إلا" was
+    extracted as "إال", "خلال" as "خالل", "الالتزام" as "االلتزام", in about
+    5,000 places. A text-level find/replace cannot undo that, because a genuine
+    alef+lam ("المال", "حالة") looks identical once flattened to text. The
+    glyph boundary is the only place the difference exists."""
+    text = word["text"]
+    if not RE_ARABIC_LETTER.search(text):
+        return text
+    chars = word.get("chars")
+    if chars:
+        return "".join(c["text"] for c in reversed(chars))
+    return text[::-1]  # no glyph info (shouldn't happen with return_chars=True)
 
 
 # ---------------------------------------------------------------------------
@@ -125,7 +141,9 @@ def group_into_lines(words, tol=3.0):
 
 def extract_page_columns(page, page_num: int):
     """Returns (en_lines, ar_lines): each a list of (page_num, text)."""
-    words = page.extract_words(use_text_flow=False, keep_blank_chars=False)
+    # return_chars: keep each word's glyphs, so Arabic words are reversed
+    # glyph-by-glyph -- see fix_arabic_word for why that matters.
+    words = page.extract_words(use_text_flow=False, keep_blank_chars=False, return_chars=True)
     if not words:
         return [], []
     split_x = find_split_x(words, page.width)
@@ -143,7 +161,7 @@ def extract_page_columns(page, page_num: int):
     ar_lines = []
     for row in group_into_lines(right):
         row.sort(key=lambda w: -w["x0"])  # rightmost first = logical first
-        text = " ".join(fix_arabic_word(w["text"]) for w in row).strip()
+        text = " ".join(fix_arabic_word(w) for w in row).strip()
         if text:
             ar_lines.append((page_num, text))
 

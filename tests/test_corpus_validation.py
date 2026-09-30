@@ -145,3 +145,29 @@ def test_non_repealed_articles_are_not_flagged_repealed(corpus):
                 f"Article {rec['article_number']} flagged is_repealed=True but its text "
                 f"contains no repeal-related term -- possible false positive"
             )
+
+
+# Words that exist in the Civil Code only in their correct form. Before the
+# glyph-level fix in extract_corpus.fix_arabic_word, every lam-alef ligature
+# came out flipped (لا -> ال), so the correct forms never appeared and the
+# broken ones appeared hundreds of times (counts from the pre-fix extraction).
+LAM_ALEF_CANARIES = {
+    # correct : broken
+    "إلا": "إال",  # 0 vs 288 before the fix
+    "خلال": "خالل",  # 0 vs 70
+    "الالتزام": "االلتزام",  # 0 vs 82
+    "فلا": "فال",  # 0 vs 148
+}
+
+
+def test_lam_alef_ligatures_extracted_in_logical_order(corpus):
+    text = " ".join(rec.get("text_ar", "") for rec in corpus)
+    words = set(text.split())
+    for correct, broken in LAM_ALEF_CANARIES.items():
+        assert broken not in words, (
+            f"'{broken}' found in text_ar -- lam-alef ligature extracted flipped "
+            f"(should be '{correct}'); see fix_arabic_word in extract_corpus.py"
+        )
+    assert any(correct in text for correct in LAM_ALEF_CANARIES), (
+        "None of the lam-alef canary words appear in their correct form"
+    )

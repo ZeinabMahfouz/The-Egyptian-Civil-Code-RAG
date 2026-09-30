@@ -865,3 +865,50 @@ arriving as `[EG_PHONE]`. `rag_time_to_first_chunk_seconds` recorded the
 request. Not verified here: the real `TextIteratorStreamer` path with
 Qwen3, because model downloads are blocked in that environment. That is
 checked on the developer machine.
+
+---
+
+## Arabic extraction: reverse glyphs, not characters (the lam-alef bug)
+
+**Found:** every lam-alef ligature in the extracted Civil Code (لا / لأ /
+لإ / لآ, about 5,000 occurrences) came out flipped to ال / أل / إل / آل.
+Words that appear in the law hundreds of times never appeared correctly:
+`إلا` had 0 correct and 288 broken ("إال"), `فلا` 0 vs 148 ("فال"),
+`الالتزام` 0 vs 82 ("االلتزام"), `خلال` 0 vs 70 ("خالل"). The bug first
+showed up in the added Consumer Protection Law document, then in the Civil
+Code contexts inside `reports/ragas_results.json`. All three Arabic contexts
+there were affected. It was then measured across the whole extracted text.
+
+**Root cause:** the PDF stores Arabic in visual (left-to-right) order, and
+`fix_arabic_word` converted each word to logical order by reversing its
+*text string*. A lam-alef ligature is a **single glyph** whose Unicode text
+is two characters already in logical order ("لا"). String reversal flipped
+those two characters too. The ~5,000 other alef-lam pairs are genuine (the
+definite article, "المال", "حالة") and are correct.
+
+**Why not a find-and-replace:** once flattened to text, a flipped ligature
+and a genuine alef+lam are identical. For example, "مالك" is correct but
+"إال" is broken. Any regex would corrupt correct words. (The small
+Consumer Protection Law document was fixed that way, by hand-checking its
+two articles. That is not possible for 1,149 articles.) The difference
+only exists at the glyph level.
+
+**Fix:** extract words with `return_chars=True` and reverse the word's
+*glyphs*, joining each glyph's text unchanged. Verified on a Chromium-rendered
+PDF with real ligature shaping: the old method reproduces exactly the broken
+forms found in the corpus ("إال خالل االلتزام فال … إلبطال األرض"). The new
+method gives "إلا خلال الالتزام فلا … لإبطال الأرض", and genuine "المال" /
+"حالة" are unchanged. The Arabic-word check also accepts presentation-form
+code points, for PDFs that map glyphs to those instead of base letters.
+
+**Gates:** `tests/test_extract_arabic.py` holds glyph-level unit tests that
+run without the PDF. `tests/test_corpus_validation.py` now fails the DVC
+`validate_corpus` stage if any of the broken canary words ("إال", "خالل",
+"االلتزام", "فال") appears in `text_ar`, or if none of the correct forms
+do. This bug went unnoticed through extraction, chunking, indexing and
+live answers. The gate means it cannot return silently.
+
+**Impact:** every Arabic chunk and embedding was built from partly
+corrupted text. Arabic retrieval quality and any Arabic RAGAS score before
+this fix are not comparable with scores after it. The corpus and index are
+rebuilt with `dvc repro`, and the GPU RAGAS run uses the fixed corpus.

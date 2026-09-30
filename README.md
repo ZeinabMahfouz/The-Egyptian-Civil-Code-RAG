@@ -354,6 +354,9 @@ add Alertmanager, which is not set up here.
 - [x] Prometheus + Grafana: `/metrics` (requests, stage latency, tokens,
       PII, retrieval similarity, RAGAS faithfulness), provisioned dashboard
       with p95 latency and cost/hour, alert rules incl. faithfulness < 0.80
+- [x] Arabic extraction fix: lam-alef ligatures (لا) were extracted
+      flipped (ال) in ~5,000 places; now reversed per glyph, with a DVC
+      validation gate. See docs/decisions.md
 - [x] Streaming: `POST /ask/stream` (FastAPI, SSE) and `ask_stream`
       (BentoML); PII-safe incremental redaction; traced and measured
       (time-to-first-chunk metric) like `/ask`
