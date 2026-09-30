@@ -5,6 +5,7 @@ from fastapi import Depends, FastAPI, Request
 from pydantic import BaseModel, field_validator
 
 from egyptian_civil_code_rag.pii import PIIGuard
+from egyptian_civil_code_rag.pipeline import TracedPipeline, make_langfuse
 from egyptian_civil_code_rag.query import RAGQueryEngine
 
 DEV_MODEL_NAME = "Qwen/Qwen3-1.7B"
@@ -42,8 +43,13 @@ def get_engine(request: Request) -> RAGQueryEngine:
     return request.app.state.engine
 
 
-def create_app(engine: RAGQueryEngine | None = None, pii_guard: PIIGuard | None = None) -> FastAPI:
+def create_app(
+    engine: RAGQueryEngine | None = None,
+    pii_guard: PIIGuard | None = None,
+    langfuse=None,
+) -> FastAPI:
     pii_guard = pii_guard or PIIGuard()
+    langfuse = langfuse or make_langfuse()
     if engine is not None:
         app = FastAPI(title="Egyptian Civil Code RAG")
         app.state.engine = engine
@@ -57,6 +63,7 @@ def create_app(engine: RAGQueryEngine | None = None, pii_guard: PIIGuard | None 
             app.state.engine = RAGQueryEngine(generate_fn=transformers_backend(DEV_MODEL_NAME))
             print("[startup] ready")
             yield
+            langfuse.flush()  # don't drop the last traces on shutdown
             app.state.engine.close()
 
         app = FastAPI(title="Egyptian Civil Code RAG", lifespan=lifespan)
@@ -69,13 +76,14 @@ def create_app(engine: RAGQueryEngine | None = None, pii_guard: PIIGuard | None 
 
     @app.post("/ask", response_model=AskResponse)
     def ask(payload: AskRequest, engine: RAGQueryEngine = Depends(get_engine)):
-        question, q_found = pii_guard(payload.question)
-        result = engine.ask(question)
-        answer, a_found = pii_guard(result["answer"])
+        # PII redaction, retrieval, generation and the Langfuse trace all
+        # live in TracedPipeline, shared with the BentoML service.
+        pipeline = TracedPipeline(engine, pii_guard, langfuse, service="fastapi")
+        result = pipeline.ask(payload.question)
         return {
-            "answer": answer,
-            "sources": result["sources"],
-            "pii_redacted": sorted(set(q_found) | set(a_found)),
+            "answer": result.answer,
+            "sources": result.sources,
+            "pii_redacted": result.pii_redacted,
         }
 
     @app.get("/health", response_model=HealthResponse)

@@ -693,3 +693,56 @@ environment does not download them again.
 **Next:** swap the generation backend to vLLM + Qwen3-8B (GPU session),
 add streaming, and consider installing `guardrails-ai` in this serving
 environment, now that it no longer shares an environment with RAGAS.
+
+---
+
+## Observability: Langfuse self-hosted, one trace per /ask
+
+**Decision:** `src/egyptian_civil_code_rag/pipeline.py` (`TracedPipeline`) runs
+the whole `/ask` flow and records one Langfuse trace per request, with a span
+for each stage: `ask` → `pii-input` (guardrail), `retrieve` (retriever),
+`generate` (generation), `pii-output` (guardrail). The FastAPI app and the
+BentoML service both call it, so the two servers trace identically, and each
+trace is tagged with the server that answered (`service:fastapi` /
+`service:bentoml`). Langfuse runs self-hosted from its official
+docker-compose file.
+
+**What each span records:**
+- `retrieve`: every cited article with its `doc_id`, language and
+  similarity score.
+- `generate`: the full prompt, the answer, the model name and token usage.
+  The backend exposes `generate.last_usage` as an attribute rather than
+  changing its return type, so the RAGAS harness keeps working unchanged.
+
+**Privacy:** the raw question never enters a trace. The question is redacted
+before the first span opens. The generation span records the answer *after*
+output redaction, so PII the model produces is not stored either. A test
+checks the text of every span for a raw national ID and phone number.
+Verified live: the traced question containing `29801011234567` has zero
+matches anywhere in Langfuse, only `[EG_NATIONAL_ID]`.
+
+**Off by default:** tracing is enabled only when `LANGFUSE_PUBLIC_KEY` and
+`LANGFUSE_SECRET_KEY` are set, so CI, the tests, and anyone running without
+a Langfuse server are unaffected. The tests capture spans with
+OpenTelemetry's in-memory exporter instead of a server.
+
+**Found while testing:** Langfuse keeps one client per public key for the
+whole process. A second `Langfuse(...)` with the same key silently reuses the
+first client's exporter, which made one test pass vacuously (it asserted
+that PII was absent from an empty span list). The tests now use a unique key
+each, and the leak test also asserts that the redacted tags *are* present,
+so an empty result can no longer pass.
+
+**Local setup issues (self-hosting on Windows + WSL + Docker Desktop):**
+Langfuse's compose file binds host ports 9000 (ClickHouse) and 5432
+(Postgres). Both were already taken on this machine, by a MinIO container and
+another project's Postgres. A `docker-compose.override.yml` in the Langfuse
+checkout moves them to 19000 and 15432. The Langfuse services communicate
+over Docker's internal network, so nothing else needed changing. The
+Postgres clash first appeared as "Can't reach database server at
+postgres:5432" from the web container, not as a port error.
+
+**Verified live (CPU, Qwen3-1.7B):** one traced request took 1m 38s in
+total: generation 1m 35s (489 tokens), retrieval 2.54 s, PII checks under
+0.01 s. Generation is effectively the whole latency budget, which is the
+case for the vLLM/GPU work.
