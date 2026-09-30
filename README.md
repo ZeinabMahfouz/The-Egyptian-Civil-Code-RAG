@@ -85,21 +85,6 @@ params.yaml       tunable pipeline parameters (chunking thresholds, etc.)
 
 ## Reproducing this
 
-## Adding a legal document
-
-Additional laws are indexed alongside the Civil Code from `data/documents/`
-(the schema is in `scripts/documents.py`, and the folder has its own README).
-Copy the text from an official source and name that source in the file.
-
-```bash
-python scripts/reindex_batch.py --dry-run data/documents/<doc_id>.json   # validate only
-# stop the API first -- local Qdrant is single-process
-python scripts/reindex_batch.py data/documents/<doc_id>.json             # add or update
-```
-
-`dvc repro` rebuilds the same index from scratch, including every file in
-`data/documents/`.
-
 **Full pipeline, from source (rebuilds extraction -> chunking -> embedding -> index):**
 
 ```bash
@@ -144,6 +129,21 @@ project's development environment is CPU-only (see
 `docs/decisions.md`), and vLLM's GPU-oriented design isn't a good fit
 without one. Swapping to vLLM + GPU is a planned follow-up, not yet
 done.
+
+## Adding a legal document
+
+Additional laws are indexed alongside the Civil Code from `data/documents/`
+(the schema is in `scripts/documents.py`, and the folder has its own README).
+Copy the text from an official source and name that source in the file.
+
+```bash
+python scripts/reindex_batch.py --dry-run data/documents/<doc_id>.json   # validate only
+# stop the API first -- local Qdrant is single-process
+python scripts/reindex_batch.py data/documents/<doc_id>.json             # add or update
+```
+
+`dvc repro` rebuilds the same index from scratch, including every file in
+`data/documents/`.
 
 ## Canary rollout
 
@@ -203,7 +203,6 @@ users to about 3 failed requests per window until you roll back.
 6 GB of RAM), so the full stack needs roughly twice the memory of the
 single-container setup.
 
-## Status
 ## Serving with BentoML
 
 The BentoML service (`src/egyptian_civil_code_rag/service.py`) wraps the same
@@ -223,6 +222,7 @@ curl -X POST http://localhost:3000/ask -H "Content-Type: application/json" \
      -d '{"question": "What does Article 147 say?"}'
 curl -X POST http://localhost:3000/health
 ```
+
 ## Observability (Langfuse)
 
 Every `/ask` is traced to a self-hosted Langfuse instance when its keys are set:
@@ -242,6 +242,43 @@ uvicorn egyptian_civil_code_rag.api:app --port 8000
 ```
 
 ![Langfuse trace of one /ask request](reports/langfuse_trace.png)
+
+## Monitoring (Prometheus + Grafana)
+
+The FastAPI app exposes Prometheus metrics at `GET /metrics`: request count
+by status, latency per stage (total / retrieve / generate), LLM tokens in and
+out, PII redactions by entity type, best-chunk retrieval similarity, and the
+latest RAGAS faithfulness. `deploy/monitoring/` runs Prometheus and a
+pre-provisioned Grafana dashboard against it:
+
+```bash
+uvicorn egyptian_civil_code_rag.api:app --host 0.0.0.0 --port 8000   # the API, on the host
+docker compose -f deploy/monitoring/docker-compose.monitoring.yml up -d
+```
+
+- Grafana: http://localhost:3001 (admin / admin), dashboard **Egyptian Civil Code RAG**
+- Prometheus: http://localhost:19090 (`/targets` for the scrape, `/alerts` for the rules)
+
+**Cost per hour** is `tokens per hour / 1000 x price per 1k tokens`. The price
+is a dashboard variable (default $0.002) because a self-hosted model has no
+per-token bill. Set it to a hosted-API equivalent or to your GPU cost per
+1k tokens.
+
+**Alerts** (`deploy/monitoring/prometheus/alerts.yml`):
+
+| Alert | Condition |
+|---|---|
+| `RagFaithfulnessLow` | latest RAGAS faithfulness < 0.80 |
+| `RagHighErrorRate` | > 5% of `/ask` requests failing for 5 min |
+| `RagSlowP95` | p95 latency > 120 s for 5 min (CPU backend; tighten for vLLM) |
+| `RagApiDown` | `/metrics` unreachable for 1 min |
+
+The alerts fire in Prometheus (`/alerts`). Sending them to email or Slack would
+add Alertmanager, which is not set up here.
+
+![Grafana dashboard](reports/grafana_dashboard.png)
+
+## Status
 
 - [x] Data extraction: 1149/1149 articles, fully validated
 - [x] Corpus validation: automated pytest gate, wired into DVC
@@ -295,3 +332,6 @@ uvicorn egyptian_civil_code_rag.api:app --port 8000
 - [x] Langfuse tracing (self-hosted): every `/ask` creates a trace with
       spans for PII check, retrieval, generation (with token usage) and
       output PII check; raw PII never enters a trace. See docs/decisions.md
+- [x] Prometheus + Grafana: `/metrics` (requests, stage latency, tokens,
+      PII, retrieval similarity, RAGAS faithfulness), provisioned dashboard
+      with p95 latency and cost/hour, alert rules incl. faithfulness < 0.80

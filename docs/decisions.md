@@ -746,3 +746,72 @@ postgres:5432" from the web container, not as a port error.
 total: generation 1m 35s (489 tokens), retrieval 2.54 s, PII checks under
 0.01 s. Generation is effectively the whole latency budget, which is the
 case for the vLLM/GPU work.
+
+---
+
+## Monitoring: Prometheus metrics from the pipeline, Grafana provisioned from files
+
+**Decision:** `src/egyptian_civil_code_rag/metrics.py` defines the Prometheus
+series. `TracedPipeline` updates them in the same place that writes the
+Langfuse spans, so metrics and traces cannot disagree. The FastAPI app serves
+them at `GET /metrics`. `deploy/monitoring/` runs Prometheus and Grafana with
+the datasource, dashboard and alert rules all provisioned from files in the
+repo. Nothing is configured by clicking in the UI, so a reviewer gets the
+same dashboard.
+
+**Series:** `rag_requests_total{status}` (ok / no_context / error),
+`rag_request_latency_seconds{stage}` (total / retrieve / generate),
+`rag_tokens_total{direction}`, `rag_pii_redactions_total{where,entity}`,
+`rag_retrieval_top_score`, `rag_ragas_faithfulness`. Label values are small
+fixed sets. A question, article number or PII value never becomes a label,
+because labels are stored verbatim and each distinct value creates a new
+series. A test checks that a redacted national ID does not appear in
+`/metrics`.
+
+**Cost per hour:** computed in Grafana as tokens/hour / 1000 x
+`$price_per_1k_tokens`, a dashboard variable. The model is self-hosted, so
+there is no real per-token price. The variable makes the number an explicit
+assumption rather than a constant hidden in code.
+
+**Faithfulness gauge:** read from `reports/ragas_results.json` at startup,
+but only when the file has real scores. The committed file comes from the
+failed CPU run, where every score is null. Exporting that as 0.0 would fire
+the faithfulness alert over an evaluation that never happened. So the gauge
+stays unset (no data, alert silent) until the GPU session produces real
+scores. There are tests for the null, real and missing-file cases.
+
+**Found live, on the first real dashboard:** the panel showed **0.00%**
+anyway. A `prometheus_client` `Gauge` without labels is exported as `0.0`
+from the moment it is created, whether or not `.set()` is ever called. So
+"no evaluation yet" was published as "faithfulness 0%", and
+`RagFaithfulnessLow` would have fired. The unit tests had checked the loader
+function but not what `/metrics` actually exports. The fix gives the gauge a
+`source` label, because a labelled gauge has no sample until
+`.labels(...).set()` is called. A regression test now checks the
+`/metrics` output itself, and it fails against the unlabelled version.
+
+**Latency buckets** run from 0.1 s to 300 s, so the same histogram covers
+both the CPU backend (about 30 s to 2 min) and the planned vLLM backend
+(seconds). The before/after comparison will then be one dashboard, not two.
+
+**Ports:** Prometheus 19090 and Grafana 3001. The defaults are taken on the
+dev machine by Langfuse (3000) and its MinIO (9090), the same class of
+clash as the Langfuse setup itself.
+
+**Verified here, not assumed:** the Prometheus config and rules pass
+`promtool`. A real Prometheus 3.5 scraped the real FastAPI app (with a
+simulated engine: 0.2 to 0.8 s generation, a 10% error rate, and a RAGAS
+file with a mean of 0.71). The target was `up`. All ten dashboard queries
+returned data, including cost/hour ($0.44 at the default price, from
+about 3,700 tokens/min) and per-stage p95. `RagFaithfulnessLow` went to
+**firing** at 0.71, and `RagHighErrorRate` went to **pending** at the
+simulated 10% error rate (it fires after its 5-minute `for:`). The Grafana
+dashboard JSON could not be loaded into a real Grafana in that
+environment. It is verified on the developer machine (screenshot in the
+README).
+
+**Scope:** metrics come from the FastAPI app. BentoML has its own built-in
+`/metrics` (request counts and latency per endpoint) but not these
+pipeline-level series. Its multiprocess Prometheus setup needs
+`bentoml.metrics` rather than plain `prometheus_client`, which is left for
+when BentoML becomes the production server.
