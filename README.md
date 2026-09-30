@@ -223,6 +223,25 @@ curl -X POST http://localhost:3000/ask -H "Content-Type: application/json" \
 curl -X POST http://localhost:3000/health
 ```
 
+## Streaming answers
+
+Both servers can stream the answer as it's generated instead of waiting a
+minute or more for the whole thing:
+
+```bash
+# FastAPI: Server-Sent Events -- token events, then a final "done" event with sources
+curl -N -X POST http://localhost:8000/ask/stream -H "Content-Type: application/json" \
+     -d '{"question": "What does Article 147 say?"}'
+
+# BentoML: plain text chunks, citations on the last line
+curl -N -X POST http://localhost:3000/ask_stream -H "Content-Type: application/json" \
+     -d '{"question": "What does Article 147 say?"}'
+```
+
+PII is redacted in the stream too, even when a number is split across
+tokens (see docs/decisions.md). The text therefore arrives about 64
+characters behind the model.
+
 ## Observability (Langfuse)
 
 Every `/ask` is traced to a self-hosted Langfuse instance when its keys are set:
@@ -335,3 +354,6 @@ add Alertmanager, which is not set up here.
 - [x] Prometheus + Grafana: `/metrics` (requests, stage latency, tokens,
       PII, retrieval similarity, RAGAS faithfulness), provisioned dashboard
       with p95 latency and cost/hour, alert rules incl. faithfulness < 0.80
+- [x] Streaming: `POST /ask/stream` (FastAPI, SSE) and `ask_stream`
+      (BentoML); PII-safe incremental redaction; traced and measured
+      (time-to-first-chunk metric) like `/ask`

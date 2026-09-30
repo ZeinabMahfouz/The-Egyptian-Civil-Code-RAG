@@ -815,3 +815,53 @@ README).
 pipeline-level series. Its multiprocess Prometheus setup needs
 `bentoml.metrics` rather than plain `prometheus_client`, which is left for
 when BentoML becomes the production server.
+
+---
+
+## Streaming: one pipeline, an incremental redactor, a worker thread
+
+**Decision:** `TracedPipeline.ask(question, on_chunk=...)` streams through
+the same code path as `/ask`, with the same spans, metrics and PII checks. It
+is not a separate streaming implementation. The transformers backend
+gained `generate.stream(prompt)` (a `TextIteratorStreamer`, with
+`model.generate` running in a thread). FastAPI exposes `POST /ask/stream` as
+Server-Sent Events: token events, then a `done` event with sources and
+`pii_redacted`. BentoML exposes `ask_stream` as an async generator of text
+chunks.
+
+**The hard part is PII redaction on a stream.** A phone number can arrive as
+`010` + `1234` + `5678`. Redacting each piece misses it, and sending `010`
+before the rest arrives leaks part of it. `StreamingRedactor` always holds
+back the last 64 characters, and it never cuts a detected PII match in half:
+the release point moves to before the match. The longest realistic PII
+value (a spaced EG IBAN, about 35 characters) is therefore seen whole before
+any of it is released. It is tested two ways: the streamed output must be
+byte-identical to whole-text redaction across hundreds of random token
+splits, and a half-arrived number must not be released early. Cost: the
+client sees text about 64 characters behind the model. On CPU, where the
+first token already takes tens of seconds, that is negligible.
+
+**Why a worker thread:** Langfuse spans use thread-local (contextvar)
+context. A streaming response iterated directly would run successive
+tokens on different threadpool threads, so spans would be opened in one
+thread and closed in another. Instead, the whole pipeline runs start to
+finish in one worker thread and pushes redacted chunks into a queue that
+the response drains. A test checks that a streamed request produces one
+complete trace (ask → pii-input → retrieve → generate → pii-output).
+
+**New metric:** `rag_time_to_first_chunk_seconds`, the time from request
+start to the first text the user sees. For streaming, this is the latency
+that matters, rather than the total time.
+
+**Errors** mid-stream end with `{"type": "error", "message": "generation
+failed"}`. Exception text stays in the trace and logs, so internals such as
+memory addresses and paths never reach the client. This is tested.
+
+**Verified here:** both servers were run over a real socket with a
+simulated streaming backend (4-character chunks, 50 ms apart). FastAPI
+delivered token events about 50 ms apart, then `done`. BentoML delivered
+text in about 0.25 s steps, with a phone number split across chunks
+arriving as `[EG_PHONE]`. `rag_time_to_first_chunk_seconds` recorded the
+request. Not verified here: the real `TextIteratorStreamer` path with
+Qwen3, because model downloads are blocked in that environment. That is
+checked on the developer machine.

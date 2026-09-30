@@ -66,6 +66,49 @@ def redact(text: str) -> tuple[str, list[str]]:
     return "".join(out), sorted({m.entity for m in matches})
 
 
+class StreamingRedactor:
+    """Redacts PII in text that arrives in pieces (streamed LLM tokens).
+
+    A phone number can arrive as "010" + "1234" + "5678": redacting each
+    piece on its own would miss it, and emitting "010" before the rest
+    arrives would leak it. So the last HOLD_BACK characters are always held
+    back, and a PII match is never cut in half -- if one straddles the
+    boundary, the boundary moves to before it. Everything longer than any
+    realistic PII value (the longest, a spaced EG IBAN, is ~35 chars) is
+    therefore seen whole before it's released.
+
+    Cost: the client sees text ~HOLD_BACK characters behind the model.
+    """
+
+    HOLD_BACK = 64
+
+    def __init__(self):
+        self._buffer = ""
+        self.entities: set[str] = set()
+
+    def _release(self, upto: int) -> str:
+        head, self._buffer = self._buffer[:upto], self._buffer[upto:]
+        redacted, found = redact(head)
+        self.entities.update(found)
+        return redacted
+
+    def feed(self, piece: str) -> str:
+        """Add a piece; return whatever is now safe to show (may be "")."""
+        self._buffer += piece
+        cut = len(self._buffer) - self.HOLD_BACK
+        if cut <= 0:
+            return ""
+        for m in detect(self._buffer):
+            if m.start < cut < m.end:
+                cut = m.start
+                break
+        return self._release(cut) if cut > 0 else ""
+
+    def flush(self) -> str:
+        """End of stream: release (and redact) everything left."""
+        return self._release(len(self._buffer))
+
+
 # --- Guardrails enforcement layer ----------------------------------------
 
 try:

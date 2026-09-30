@@ -34,6 +34,13 @@ LATENCY = Histogram(
     ["service", "stage"],  # stage: total | retrieve | generate
     buckets=LATENCY_BUCKETS,
 )
+TIME_TO_FIRST_CHUNK = Histogram(
+    "rag_time_to_first_chunk_seconds",
+    "Streaming /ask: time from request start until the first answer text is sent. "
+    "What a user actually waits for, versus total latency.",
+    ["service"],
+    buckets=LATENCY_BUCKETS,
+)
 TOKENS = Counter(
     "rag_tokens_total",
     "LLM tokens processed",

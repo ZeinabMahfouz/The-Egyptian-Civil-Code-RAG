@@ -21,12 +21,13 @@ Metrics are always on (they're just in-process counters until scraped).
 
 import os
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from langfuse import Langfuse, propagate_attributes
 
 from egyptian_civil_code_rag import metrics
-from egyptian_civil_code_rag.pii import PIIGuard
+from egyptian_civil_code_rag.pii import PIIGuard, StreamingRedactor
 
 NO_CONTEXT_ANSWER = "No relevant articles found."
 
@@ -59,10 +60,13 @@ class TracedPipeline:
         self.langfuse = langfuse
         self.service = service  # "fastapi" or "bentoml" -- which server answered
 
-    def ask(self, question: str) -> AskResult:
+    def ask(self, question: str, on_chunk: Callable[[str], None] | None = None) -> AskResult:
+        """Runs the full pipeline. With on_chunk, the answer is also streamed:
+        on_chunk receives successive pieces of the *redacted* answer as the
+        model produces them. The returned AskResult is the same either way."""
         started = time.perf_counter()
         try:
-            result = self._ask(question)
+            result = self._ask(question, on_chunk, started)
         except Exception:
             metrics.REQUESTS.labels(self.service, "error").inc()
             raise
@@ -76,7 +80,20 @@ class TracedPipeline:
                 metrics.TOKENS.labels(self.service, direction).inc(result.usage.get(direction, 0))
         return result
 
-    def _ask(self, question: str) -> AskResult:
+    def _ask(self, question: str, on_chunk, started: float) -> AskResult:
+        first_chunk_sent = False
+
+        def emit(text: str) -> None:
+            nonlocal first_chunk_sent
+            if not text or on_chunk is None:
+                return
+            if not first_chunk_sent:
+                first_chunk_sent = True
+                metrics.TIME_TO_FIRST_CHUNK.labels(self.service).observe(
+                    time.perf_counter() - started
+                )
+            on_chunk(text)
+
         clean_question, q_found = self.pii(question)
         for entity in q_found:
             metrics.PII_REDACTIONS.labels(self.service, "question", entity).inc()
@@ -123,6 +140,7 @@ class TracedPipeline:
                 if not hits:
                     raw_answer = NO_CONTEXT_ANSWER
                     answer, a_found = self.pii(raw_answer)
+                    emit(answer)
                 else:
                     prompt = self.engine.build_prompt(clean_question, hits)
                     generate_fn = self.engine.generate_fn
@@ -133,7 +151,18 @@ class TracedPipeline:
                         model=getattr(generate_fn, "model_name", None),
                     ) as gen:
                         t0 = time.perf_counter()
-                        raw_answer = generate_fn(prompt).strip()
+                        if on_chunk is not None and hasattr(generate_fn, "stream"):
+                            # Stream through an incremental redactor: raw model
+                            # tokens never reach the client, even mid-number.
+                            redactor = StreamingRedactor()
+                            pieces = []
+                            for piece in generate_fn.stream(prompt):
+                                pieces.append(piece)
+                                emit(redactor.feed(piece))
+                            emit(redactor.flush())
+                            raw_answer = "".join(pieces).strip()
+                        else:
+                            raw_answer = generate_fn(prompt).strip()
                         metrics.LATENCY.labels(self.service, "generate").observe(
                             time.perf_counter() - t0
                         )
@@ -142,6 +171,8 @@ class TracedPipeline:
                         # the trace must be as clean as the response.
                         answer, a_found = self.pii(raw_answer)
                         gen.update(output=answer, usage_details=usage)
+                    if on_chunk is not None and not hasattr(generate_fn, "stream"):
+                        emit(answer)  # backend can't stream: send it in one piece
 
                 with self.langfuse.start_as_current_observation(
                     name="pii-output", as_type="guardrail", input=answer
