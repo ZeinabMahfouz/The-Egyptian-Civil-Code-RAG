@@ -11,8 +11,8 @@ stages:
       size: 2599703
     - path: scripts/extract_corpus.py
       hash: md5
-      md5: 0e6c202ce3deefefb00f5be0a32a1b60
-      size: 21346
+      md5: ecee2b695143c65ef56f07075801c8e5
+      size: 22565
     - path: scripts/manual_patches.json
       hash: md5
       md5: bc5584ea5c2b001047bbc91a1c996a7f
@@ -24,7 +24,7 @@ stages:
     outs:
     - path: data/interim/civil_code.json
       hash: md5
-      md5: f99065d564dfb814bc595a175cc133ff
+      md5: 19e34766c40771bc444d4c9f452000aa
       size: 1300409
   validate_corpus:
     cmd: pytest tests/test_corpus_validation.py -v && touch
@@ -32,12 +32,12 @@ stages:
     deps:
     - path: data/interim/civil_code.json
       hash: md5
-      md5: f99065d564dfb814bc595a175cc133ff
+      md5: 19e34766c40771bc444d4c9f452000aa
       size: 1300409
     - path: tests/test_corpus_validation.py
       hash: md5
-      md5: 9c2a5265c35173e834c03215f17f78f5
-      size: 5913
+      md5: ffc8244df4ebce4b8eff1d0c89fdfb24
+      size: 7025
     outs:
     - path: data/interim/.validated
       hash: md5
@@ -53,7 +53,7 @@ stages:
       size: 0
     - path: data/interim/civil_code.json
       hash: md5
-      md5: f99065d564dfb814bc595a175cc133ff
+      md5: 19e34766c40771bc444d4c9f452000aa
       size: 1300409
     - path: scripts/chunk_corpus.py
       hash: md5
@@ -66,7 +66,7 @@ stages:
     outs:
     - path: data/interim/chunks.json
       hash: md5
-      md5: d8a9616908de58e16a26de5fb3b53b06
+      md5: 0a9ed0564fc67bb8c426a4061939e048
       size: 1351941
   embed_index:
     cmd: python scripts/embed_and_index.py --chunks data/interim/chunks.json
@@ -74,17 +74,17 @@ stages:
     deps:
     - path: data/documents
       hash: md5
-      md5: 6e9815368eaf5b88e2266402ba307a98.dir
-      size: 1862
+      md5: a4a433ed7ae98647030ca6e1f1d52b53.dir
+      size: 7918
       nfiles: 2
     - path: data/interim/chunks.json
       hash: md5
-      md5: d8a9616908de58e16a26de5fb3b53b06
+      md5: 0a9ed0564fc67bb8c426a4061939e048
       size: 1351941
     - path: scripts/documents.py
       hash: md5
-      md5: 5e2759083a3f874b2827f5bc9ea89547
-      size: 4733
+      md5: 4eb5dc5c63e33c9be3fcfcbbc3b9d938
+      size: 5948
     - path: scripts/embed_and_index.py
       hash: md5
       md5: 0348092b71c7114aaf57096cf527e311
@@ -100,6 +100,6 @@ stages:
     outs:
     - path: data/processed/qdrant_storage
       hash: md5
-      md5: 02717441cf03bba3855db50c39afa69a.dir
-      size: 24691254
+      md5: 006144174a0ff69141ca39fced3c1628.dir
+      size: 24699446
       nfiles: 3
