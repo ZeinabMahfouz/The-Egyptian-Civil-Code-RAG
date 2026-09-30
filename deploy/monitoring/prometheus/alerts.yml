@@ -1,0 +1,51 @@
+# Alert rules for the RAG API. Visible (and firing) at http://localhost:19090/alerts.
+# Delivery (email/Slack) would go through Alertmanager -- see README "Monitoring".
+groups:
+  - name: rag-quality
+    rules:
+      # The course checklist's quality alert. rag_ragas_faithfulness is only
+      # exported once a RAGAS run has produced real scores, so this stays
+      # silent (no data) until then -- it never fires on "no evaluation yet".
+      - alert: RagFaithfulnessLow
+        expr: rag_ragas_faithfulness < 0.80
+        labels:
+          severity: critical
+        annotations:
+          summary: "RAGAS faithfulness {{ $value | printf \"%.2f\" }} is below 0.80"
+          description: >-
+            Answers are drifting from the retrieved articles. For a legal
+            assistant this means unsupported claims -- check the latest
+            RAGAS run in MLflow before promoting any release.
+
+  - name: rag-serving
+    rules:
+      - alert: RagApiDown
+        expr: up{job="rag-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RAG API is not answering /metrics"
+
+      - alert: RagHighErrorRate
+        expr: |
+          sum(rate(rag_requests_total{status="error"}[5m]))
+            / clamp_min(sum(rate(rag_requests_total[5m])), 1e-9) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "More than 5% of /ask requests are failing"
+
+      # 120s fits the CPU dev backend (~30s-2min per answer). Tighten this
+      # when vLLM on GPU is serving -- the threshold should follow the SLO,
+      # not the hardware we happen to be on.
+      - alert: RagSlowP95
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(rag_request_latency_seconds_bucket{stage="total"}[5m]))) > 120
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "/ask p95 latency {{ $value | printf \"%.0f\" }}s is above 120s"

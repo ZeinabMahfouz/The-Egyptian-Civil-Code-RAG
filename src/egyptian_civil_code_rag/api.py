@@ -1,9 +1,11 @@
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, Request, Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, field_validator
 
+from egyptian_civil_code_rag.metrics import load_ragas_faithfulness
 from egyptian_civil_code_rag.pii import PIIGuard
 from egyptian_civil_code_rag.pipeline import TracedPipeline, make_langfuse
 from egyptian_civil_code_rag.query import RAGQueryEngine
@@ -50,6 +52,7 @@ def create_app(
 ) -> FastAPI:
     pii_guard = pii_guard or PIIGuard()
     langfuse = langfuse or make_langfuse()
+    load_ragas_faithfulness()  # sets the faithfulness gauge only if real scores exist
     if engine is not None:
         app = FastAPI(title="Egyptian Civil Code RAG")
         app.state.engine = engine
@@ -85,6 +88,12 @@ def create_app(
             "sources": result.sources,
             "pii_redacted": result.pii_redacted,
         }
+
+    @app.get("/metrics", include_in_schema=False)
+    def prometheus_metrics():
+        # Scraped by Prometheus (deploy/monitoring/). Defined as a route, not
+        # a mounted sub-app, so /metrics doesn't 307-redirect to /metrics/.
+        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
     @app.get("/health", response_model=HealthResponse)
     def health(engine: RAGQueryEngine = Depends(get_engine)):

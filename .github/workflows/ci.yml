@@ -62,7 +62,7 @@ jobs:
         run: dvc pull
 
       - name: Run tests
-        run: pytest tests/test_corpus_validation.py tests/test_api.py tests/test_reindex_batch.py tests/test_pii.py tests/test_canary_report.py tests/test_tracing.py -v
+        run: pytest tests/test_corpus_validation.py tests/test_api.py tests/test_reindex_batch.py tests/test_pii.py tests/test_canary_report.py tests/test_tracing.py tests/test_metrics.py -v
 
   rebuild_index:
     runs-on: ubuntu-latest
