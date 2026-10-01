@@ -315,10 +315,24 @@ The API can use the same vLLM server: set `VLLM_BASE_URL=http://<host>:8000/v1`
 and `GEN_MODEL=Qwen/Qwen3-8B` before starting uvicorn or BentoML. Without
 them, it falls back to the local CPU model.
 
-**CI gate:** `scripts/ragas_gate.py` fails the build if faithfulness on the
-20-question CI subset is below 0.75. It also fails if the committed
-evaluation is stale, meaning it was run against a different corpus or
-different chunking/embedding params than the repo now has.
+**Results** (full run, 54 questions, Qwen3-8B as generator and judge):
+
+| Faithfulness | Context precision | Context recall | Article hit rate | Out-of-corpus declined |
+|---|---|---|---|---|
+| **0.896** | 0.908 | 0.854 | 0.917 | 4 of 6 |
+
+The sweep found no chunking config meaningfully better than the current
+one (best challenger +0.044 faithfulness, below the 0.05 needed), so
+`baseline-700` stayed in production. Full tables, the before/after of the
+evaluation fixes, and known limits are in `docs/decisions.md`. MLflow
+screenshots: `reports/mlflow_comparison.png`, `reports/mlflow_registry.png`.
+
+**CI gate** (`ragas_gate` job): `scripts/ragas_gate.py` fails the build if
+faithfulness on the 20-question CI subset is below 0.75, or if fewer than
+75% of its out-of-corpus questions were declined. It also fails if the
+committed evaluation is stale, meaning it was run against a different
+corpus or different chunking/embedding params than the repo now has.
+Current result: faithfulness 0.868, 3 of 4 declined, **PASS**.
 
 ## Status
 
@@ -343,15 +357,14 @@ different chunking/embedding params than the repo now has.
       OAuth, not a service account -- see docs/decisions.md), CI
       authenticates via three repo secrets reconstructing the same
       local credential setup
-- [ ] Generative model for serving: Qwen3-8B via vLLM (Qwen3-1.7B via
-      `transformers` used for CPU-based development so far)
-- [x] RAGAS evaluation harness: built, integrated, verified
-      structurally correct (real retrieval + generation, correct
-      MLflow logging path) -- full-scale scoring deferred until
-      GPU/stronger judge available, see docs/decisions.md for the
-      specific failure (chat-template mismatch + judge capability
-      limits, not a config bug) and the 27m55s data point that
-      informed the decision to stop iterating on CPU
+- [x] Generative model: Qwen3-8B via vLLM on Kaggle (2x T4); the API and
+      BentoML use it when `VLLM_BASE_URL` is set, Qwen3-1.7B on CPU otherwise
+- [x] RAGAS evaluation on GPU: 54 questions, faithfulness 0.896, judged by
+      Qwen3-8B (the CPU attempt and why it failed are in docs/decisions.md)
+- [x] MLflow: 5-config chunking sweep + full run, best config registered as
+      `civil-code-rag-chunking@production`
+- [x] CI RAGAS gate: faithfulness >= 0.75, out-of-corpus declined, and
+      fails when the evaluation is stale against the corpus or params
 - [x] 54-question evaluation set (`tests/eval/eval_questions.json`),
       stratified across substantive questions, direct article lookups,
       repealed-status checks (including individual articles inside a

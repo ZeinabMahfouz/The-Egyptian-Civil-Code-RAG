@@ -125,9 +125,16 @@ def test_faithfulness_not_exported_before_any_real_run():
     samples = [
         line
         for line in exposition.splitlines()
-        if line.startswith("rag_ragas_faithfulness") and 'source="ragas.json"' not in line
+        if line.startswith('rag_ragas_faithfulness{source="ragas_results.json"}')
     ]
-    assert samples == []  # the repo's own null-score file must produce no sample
+    # The repo's committed report: no sample while it has no real scores,
+    # its real in-corpus mean once a GPU evaluation is committed -- never 0.0.
+    expected = metrics.load_ragas_faithfulness()
+    if expected is None:
+        assert samples == []
+    else:
+        assert len(samples) == 1 and float(samples[0].split()[-1]) == pytest.approx(expected)
+        assert expected > 0
 
 
 def test_faithfulness_gauge_ignores_null_scores(tmp_path):

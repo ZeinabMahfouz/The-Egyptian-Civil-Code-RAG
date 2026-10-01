@@ -1019,3 +1019,64 @@ re-deploying for noise is cost and risk with no benefit.
 vLLM through LangChain returns 1 ("LLM returned 1 generations instead of
 requested 3"). The metric is still computed, from one generated question
 instead of three, so it is noisier.
+
+## GPU evaluation results (Kaggle, after the fixes)
+
+Generator and judge: Qwen3-8B on vLLM (2x T4, fp16). Embeddings: BGE-M3.
+Corpus md5 `b5678806de7597f927f542e9ec159392` (corrected repeal flags).
+
+**Sweep: 5 chunking configs on the 20-question CI subset** (16 in-corpus
+questions for the RAGAS means, 4 out-of-corpus for refusal):
+
+| Config | Split threshold | Repealed dedupe | Faithfulness | Context precision | Context recall | Refusal rate |
+|---|---|---|---|---|---|---|
+| **baseline-700** (production) | 700 | yes | 0.857 | 0.812 | 0.812 | 0.75 |
+| split-400 | 400 | yes | 0.824 | 0.833 | 0.812 | 0.75 |
+| split-1200 | 1200 | yes | 0.902 | 0.812 | 0.812 | 0.75 |
+| whole-articles | never | yes | 0.879 | 0.812 | 0.812 | 0.75 |
+| no-repealed-dedupe | 700 | no | 0.889 | 0.812 | 0.812 | 0.75 |
+
+Retrieval was identical across configs (article hit rate 0.875 in all five),
+so chunk size barely matters for this question set. The best challenger
+(split-1200) beat the baseline by 0.044 faithfulness, below the 0.05
+`MIN_FAITHFULNESS_GAIN`, so `best_of` kept **baseline-700**. With 15 scored
+answers, 0.044 is less than one answer's difference.
+
+**Full run: baseline-700 on all 54 questions**, registered as
+`civil-code-rag-chunking` v1, alias `@production`:
+
+| Metric | Score |
+|---|---|
+| Faithfulness (in-corpus) | **0.896** |
+| Context precision | 0.908 |
+| Context recall | 0.854 |
+| Article hit rate | 0.917 |
+| Refusal rate (out-of-corpus declined) | 0.667 (4 of 6) |
+| False refusal rate (in-corpus wrongly declined) | 0.021 (1 of 48) |
+
+Answer relevancy and the per-question scores are in
+`reports/ragas_results.json`. The CI gate on the same report: faithfulness
+**0.868** on the CI subset (threshold 0.75), 3 of 4 out-of-corpus questions
+declined: **PASS**.
+
+**Before vs after the fixes** (baseline-700, CI subset): faithfulness
+0.567 → 0.857, context precision 0.679 → 0.812, context recall 0.725 →
+0.812. The gain comes from fixing two real bugs (repeal flags, retrieval
+language) and two measurement errors (judge context, refusal scoring), not
+from tuning. See the previous section.
+
+**Known limits.**
+- 2 of 6 out-of-corpus questions were answered instead of declined in the
+  full run. The prompt says to decline, but the 8B model sometimes answers
+  from general knowledge. This is the main remaining hallucination risk.
+- Generator and judge are the same model. A model judging its own answers
+  may be lenient; a different judge would be a stronger check.
+- One faithfulness score per sweep config is missing: the judge hit its
+  1024-token output limit (`LLMDidNotFinishException`). The gate requires
+  80% of questions to be scored, and 15 of 16 is above that.
+- MLflow run durations show only the logging step (milliseconds). The
+  evaluation runs before the MLflow run is opened; `eval_seconds` is the
+  real duration.
+
+**Evidence:** `reports/mlflow_comparison.png` (all runs with metrics and
+params) and `reports/mlflow_registry.png` (the registered model).
