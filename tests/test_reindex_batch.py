@@ -232,3 +232,21 @@ def test_exact_article_lookup_ignores_other_documents(client, doc, model):
     assert hits[0].payload["doc_id"] == CIVIL_CODE_DOC_ID
     assert hits[0].payload["citation"] == "Egyptian Civil Code, Article 1"
     assert count_doc(client, COLLECTION, doc["doc_id"]) == 5
+
+
+# --- retrieval: answer from the question's language ---
+
+
+def test_retrieval_returns_text_in_the_question_language(client, doc, model):
+    run(client, [doc], model)
+    engine = RAGQueryEngine.__new__(RAGQueryEngine)
+    engine.embed_model = model
+    engine.client = client
+    engine.collection = COLLECTION
+
+    en = engine.retrieve("What does Article 1 say?", top_k_distinct=1)
+    ar = engine.retrieve("ماذا تقول المادة 1؟", top_k_distinct=1)
+    assert en[0].payload["lang"] == "en"
+    assert ar[0].payload["lang"] == "ar"
+    # same article either way -- only the language of the text changes
+    assert en[0].payload["chunk_id"] == ar[0].payload["chunk_id"]

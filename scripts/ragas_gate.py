@@ -25,6 +25,9 @@ from pathlib import Path
 
 import yaml
 
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+from egyptian_civil_code_rag.refusal import OUT_OF_CORPUS, is_refusal  # noqa: E402
+
 GATED_PARAMS = ("chunking", "embedding")
 
 
@@ -37,7 +40,9 @@ def corpus_md5_from_dvc_lock(lock: Path) -> str | None:
     return None
 
 
-def check(report_path, subset_path, params_path, lock_path, threshold) -> list[str]:
+def check(
+    report_path, subset_path, params_path, lock_path, threshold, min_refusal=0.75
+) -> list[str]:
     """Returns a list of failure messages (empty = pass)."""
     try:
         report = json.loads(Path(report_path).read_text(encoding="utf-8"))
@@ -50,9 +55,20 @@ def check(report_path, subset_path, params_path, lock_path, threshold) -> list[s
         ]
 
     failures = []
-    subset_ids = {
-        q["id"] for q in json.loads(Path(subset_path).read_text(encoding="utf-8"))["questions"]
-    }
+    subset = json.loads(Path(subset_path).read_text(encoding="utf-8"))["questions"]
+    # Out-of-corpus questions are gated on declining, not on faithfulness
+    # (see mean_scores in gpu_eval.py for why RAGAS can't score a refusal).
+    subset_ids = {q["id"] for q in subset if q["category"] != OUT_OF_CORPUS}
+    ooc_ids = {q["id"] for q in subset if q["category"] == OUT_OF_CORPUS}
+    ooc_rows = [r for r in report["rows"] if r.get("_id") in ooc_ids]
+    if ooc_ids:
+        declined = sum(is_refusal(r.get("response", "")) for r in ooc_rows)
+        print(f"out-of-corpus declined: {declined}/{len(ooc_ids)} (minimum {min_refusal:.0%})")
+        if declined < len(ooc_ids) * min_refusal:
+            failures.append(
+                f"only {declined}/{len(ooc_ids)} out-of-corpus questions were declined -- "
+                "the system answered questions the Civil Code doesn't cover"
+            )
     scores = [
         r["faithfulness"]
         for r in report["rows"]
@@ -95,8 +111,13 @@ def main(argv=None) -> int:
     ap.add_argument("--params", default="params.yaml")
     ap.add_argument("--dvc-lock", default="dvc.lock")
     ap.add_argument("--threshold", type=float, default=0.75)
+    ap.add_argument(
+        "--min-refusal", type=float, default=0.75, help="share of out-of-corpus questions declined"
+    )
     args = ap.parse_args(argv)
-    failures = check(args.report, args.subset, args.params, args.dvc_lock, args.threshold)
+    failures = check(
+        args.report, args.subset, args.params, args.dvc_lock, args.threshold, args.min_refusal
+    )
     for f in failures:
         print(f"[FAIL] {f}")
     if not failures:

@@ -46,7 +46,8 @@ from embed_and_index import build_points  # noqa: E402
 from qdrant_client import QdrantClient  # noqa: E402
 from qdrant_client.models import Distance, VectorParams  # noqa: E402
 
-from egyptian_civil_code_rag.query import RAGQueryEngine  # noqa: E402
+from egyptian_civil_code_rag.query import RAGQueryEngine, format_context  # noqa: E402
+from egyptian_civil_code_rag.refusal import is_in_corpus, is_refusal  # noqa: E402
 
 RAGAS_METRICS = ("faithfulness", "context_precision", "context_recall", "answer_relevancy")
 REGISTERED_MODEL = "civil-code-rag-chunking"
@@ -109,7 +110,9 @@ def answer_questions(engine: RAGQueryEngine, questions: list, workers: int = 4) 
 
     def one(q):
         hits = engine.retrieve(q["question"])
-        contexts = [h.payload["text"] for h in hits]
+        # The judge sees each article exactly as the generator did (citation,
+        # repeal status, text) -- see format_context.
+        contexts = [format_context(h.payload) for h in hits]
         sources = [h.payload["citation"] for h in hits]
         if hits:
             answer = engine.generate_fn(engine.build_prompt(q["question"], hits)).strip()
@@ -203,11 +206,27 @@ def score_with_ragas(
 
 
 def mean_scores(rows, metrics=RAGAS_METRICS) -> dict:
+    """RAGAS means over the *in-corpus* questions only. For an out-of-corpus
+    question ("what does criminal law say about theft?") the right answer is
+    to decline: there is no reference answer to recall and no relevant
+    context to be precise about, and RAGAS scores a correct refusal ~0 on
+    answer_relevancy (it reads as "noncommittal"). Averaging those in
+    measured the metric's blind spot, not the system. They're scored by
+    refusal_rate instead -- and false_refusal_rate keeps the system honest
+    in the other direction: declining in-corpus questions is a failure too."""
+    in_corpus = [r for r in rows if is_in_corpus(r)]
+    out_corpus = [r for r in rows if not is_in_corpus(r)]
     out = {}
     for m in metrics:
-        vals = [r[m] for r in rows if r.get(m) is not None]
+        vals = [r[m] for r in in_corpus if r.get(m) is not None]
         out[m] = sum(vals) / len(vals) if vals else None
         out[f"{m}_n_scored"] = len(vals)  # how many the judge actually managed to score
+    out["refusal_rate"] = (
+        sum(is_refusal(r["response"]) for r in out_corpus) / len(out_corpus) if out_corpus else None
+    )
+    out["false_refusal_rate"] = (
+        sum(is_refusal(r["response"]) for r in in_corpus) / len(in_corpus) if in_corpus else None
+    )
     return out
 
 
@@ -254,7 +273,7 @@ def run_config(cfg, args, corpus, questions, embed_model, generate_fn, stage: st
         rows = score_with_ragas(
             rows, args.vllm_url, args.judge_model, args.embedding_model, workers=args.judge_workers
         )
-    scores = mean_scores(rows) if not args.skip_ragas else {}
+    scores = mean_scores(rows, RAGAS_METRICS if not args.skip_ragas else ())
     scores["article_hit_rate"] = article_hit_rate(rows)
     client.close()
 
@@ -294,10 +313,19 @@ def run_config(cfg, args, corpus, questions, embed_model, generate_fn, stage: st
     return {"config": cfg, "scores": scores, "run_id": run_id, "rows": rows, "report": out}
 
 
-def best_of(results: list) -> dict:
+# A 20-question subset can't resolve small differences: one answer scored
+# differently moves mean faithfulness by ~0.03-0.05. A challenger has to beat
+# the current production config (SWEEP[0], what params.yaml builds today) by
+# more than that, or production stays as is -- re-chunking, re-indexing and
+# re-deploying for noise is cost and risk with no benefit.
+MIN_FAITHFULNESS_GAIN = 0.05
+
+
+def best_of(results: list, min_gain: float = MIN_FAITHFULNESS_GAIN) -> dict:
     """Highest faithfulness wins (hallucination is the failure that matters
     for legal answers); context_precision, then article_hit_rate break ties.
-    Without RAGAS (dry run), article_hit_rate alone decides."""
+    Without RAGAS (dry run), article_hit_rate alone decides. results[0] is the
+    incumbent: it is kept unless the winner beats its faithfulness by min_gain."""
 
     def key(r):
         s = r["scores"]
@@ -306,7 +334,13 @@ def best_of(results: list) -> dict:
             for m in ("faithfulness", "context_precision", "article_hit_rate")
         )
 
-    return max(results, key=key)
+    winner = max(results, key=key)
+    incumbent = results[0]
+    f_win = winner["scores"].get("faithfulness")
+    f_inc = incumbent["scores"].get("faithfulness")
+    if f_win is not None and f_inc is not None and f_win - f_inc < min_gain:
+        return incumbent
+    return winner
 
 
 def register_and_promote(result: dict, embedding_model: str) -> str:

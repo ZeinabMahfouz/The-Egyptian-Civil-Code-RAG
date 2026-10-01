@@ -131,6 +131,21 @@ def test_repealed_count_is_plausible(corpus):
     )
 
 
+def test_only_known_repealed_ranges_are_flagged(corpus):
+    # The other direction, and the one that bit: Articles 2, 388 and 1034
+    # *mention* repeal and were flagged, so the RAG called live law "no
+    # longer in force". Only the two notice ranges are repealed.
+    known = {n for lo, hi in KNOWN_REPEALED_RANGES for n in range(lo, hi + 1)}
+    wrongly = sorted(
+        rec["article_number"]
+        for rec in corpus
+        if rec.get("is_repealed")
+        and rec["article_number"] not in known
+        and "manually_patched" not in rec.get("flags", [])
+    )
+    assert not wrongly, f"Articles flagged repealed outside the known ranges: {wrongly}"
+
+
 def test_non_repealed_articles_are_not_flagged_repealed(corpus):
     # Sanity check in the other direction: is_repealed shouldn't be a blanket
     # True or a coin flip. Every flagged article should actually contain a

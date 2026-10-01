@@ -146,3 +146,15 @@ def test_faithfulness_gauge_from_real_scores(tmp_path):
 
 def test_faithfulness_gauge_missing_file(tmp_path):
     assert metrics.load_ragas_faithfulness(tmp_path / "nope.json") is None
+
+
+def test_faithfulness_gauge_ignores_out_of_corpus_rows(tmp_path):
+    # A correctly declined out-of-corpus question scores ~0 in RAGAS; it is
+    # gated by refusal rate, not averaged into faithfulness.
+    f = tmp_path / "ragas.json"
+    rows = [
+        {"_category": "substantive", "faithfulness": 0.9},
+        {"_category": "out_of_corpus", "faithfulness": 0.0},
+    ]
+    f.write_text(json.dumps({"meta": {}, "aggregate": {}, "rows": rows}))
+    assert metrics.load_ragas_faithfulness(f) == pytest.approx(0.9)
