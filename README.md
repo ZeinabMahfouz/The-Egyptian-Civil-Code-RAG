@@ -297,6 +297,29 @@ add Alertmanager, which is not set up here.
 
 ![Grafana dashboard](reports/grafana_dashboard.png)
 
+## GPU evaluation (Kaggle): vLLM, RAGAS, MLflow
+
+The laptop has no GPU, so generation with Qwen3-8B, RAGAS scoring and the
+MLflow chunking sweep run in `notebooks/kaggle_gpu_eval.ipynb` on Kaggle
+(T4 x2):
+
+- **vLLM** serves `Qwen/Qwen3-8B` (fp16, tensor-parallel 2) behind an
+  OpenAI-compatible API, as both the generator and the RAGAS judge.
+- **`scripts/gpu_eval.py sweep`**: 5 chunking configs (paragraph-split
+  threshold 400 / 700 / 1200 / whole articles, repealed-range dedupe on/off),
+  each scored on the 20-question CI subset and logged to MLflow.
+- **`scripts/gpu_eval.py full`**: the best config on all 54 questions and all
+  4 RAGAS metrics, registered as `civil-code-rag-chunking@production`.
+
+The API can use the same vLLM server: set `VLLM_BASE_URL=http://<host>:8000/v1`
+and `GEN_MODEL=Qwen/Qwen3-8B` before starting uvicorn or BentoML. Without
+them, it falls back to the local CPU model.
+
+**CI gate:** `scripts/ragas_gate.py` fails the build if faithfulness on the
+20-question CI subset is below 0.75. It also fails if the committed
+evaluation is stale, meaning it was run against a different corpus or
+different chunking/embedding params than the repo now has.
+
 ## Status
 
 - [x] Data extraction: 1149/1149 articles, fully validated

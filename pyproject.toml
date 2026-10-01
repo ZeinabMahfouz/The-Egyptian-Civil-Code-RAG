@@ -21,6 +21,8 @@ where = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+# Kaggle notebooks use shell magics (!, %cd) and display(); linted by eye, not CI.
+extend-exclude = ["notebooks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
