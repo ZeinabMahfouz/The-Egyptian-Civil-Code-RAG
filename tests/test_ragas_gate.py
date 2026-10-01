@@ -15,9 +15,22 @@ SUBSET = REPO / "tests" / "eval" / "eval_questions_ci_subset.json"
 PARAMS = yaml.safe_load((REPO / "params.yaml").read_text(encoding="utf-8"))
 
 
-def write(tmp_path, faith=0.9, params=None, corpus_md5="abc", n=None):
-    ids = [q["id"] for q in json.loads(SUBSET.read_text(encoding="utf-8"))["questions"]]
-    rows = [{"_id": i, "faithfulness": faith} for i in ids[:n]]
+QUESTIONS = json.loads(SUBSET.read_text(encoding="utf-8"))["questions"]
+IN_CORPUS = [q["id"] for q in QUESTIONS if q["category"] != "out_of_corpus"]
+OUT_OF_CORPUS = [q["id"] for q in QUESTIONS if q["category"] == "out_of_corpus"]
+
+
+def write(tmp_path, faith=0.9, params=None, corpus_md5="abc", n=None, declined=None):
+    rows = [{"_id": i, "faithfulness": faith, "response": "Article 1 says"} for i in IN_CORPUS[:n]]
+    declined = len(OUT_OF_CORPUS) if declined is None else declined
+    rows += [
+        {
+            "_id": i,
+            "faithfulness": 0.0,  # what RAGAS gives a refusal -- must not drag the mean
+            "response": "The provided articles do not contain this." if k < declined else "Yes.",
+        }
+        for k, i in enumerate(OUT_OF_CORPUS)
+    ]
     report = {"meta": {"params": params or PARAMS, "corpus_md5": corpus_md5}, "rows": rows}
     rp = tmp_path / "r.json"
     rp.write_text(json.dumps(report))
@@ -60,7 +73,16 @@ def test_fails_when_corpus_changed(tmp_path):
 
 
 def test_fails_when_judge_scored_too_few(tmp_path):
-    assert any("only 5/20" in f for f in gate(tmp_path, n=5))
+    assert any(f"only 5/{len(IN_CORPUS)}" in f for f in gate(tmp_path, n=5))
+
+
+def test_refusals_do_not_count_against_faithfulness(tmp_path):
+    assert gate(tmp_path, faith=0.8) == []  # out-of-corpus rows carry 0.0 and are ignored
+
+
+def test_fails_when_out_of_corpus_questions_are_answered(tmp_path):
+    out = gate(tmp_path, declined=1)
+    assert any(f"only 1/{len(OUT_OF_CORPUS)} out-of-corpus" in f for f in out)
 
 
 def test_fails_on_old_cpu_report_format():

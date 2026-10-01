@@ -25,6 +25,23 @@ def strip_thinking(text: str) -> str:
     return re.sub(r"<think>.*?</think>\s*", "", text, flags=re.DOTALL).strip()
 
 
+RE_ARABIC = re.compile(r"[\u0600-\u06FF]")
+
+
+def question_language(question: str) -> str:
+    """'ar' if the question contains Arabic letters, else 'en'."""
+    return "ar" if RE_ARABIC.search(question) else "en"
+
+
+def format_context(payload: dict) -> str:
+    """One retrieved article exactly as the generator sees it: citation,
+    repeal status, text. The RAGAS judge gets the same string -- if it only
+    saw the bare text, every correct "according to Article 44" would count
+    as an unsupported claim (the label lives outside the text)."""
+    status = " (REPEALED -- no longer in force)" if payload.get("is_repealed") else ""
+    return f"[{payload['citation']}]{status}\n{payload['text']}"
+
+
 def extract_referenced_article_numbers(question: str) -> list[int]:
     numbers = []
     for m in RE_ARTICLE_REF.finditer(question):
@@ -78,6 +95,40 @@ class RAGQueryEngine:
         top_k_raw: int = DEFAULT_TOP_K_RAW,
         top_k_distinct: int = DEFAULT_TOP_K_DISTINCT,
     ):
+        hits = self._retrieve_distinct(question, top_k_raw, top_k_distinct)
+        return self._prefer_language(hits, question_language(question))
+
+    def _prefer_language(self, hits, lang: str):
+        """Every chunk is indexed twice (Arabic and English text). Dedup keeps
+        whichever copy ranked first, so an English question could be answered
+        from Arabic text (and vice versa) -- the model then translates on the
+        fly, and the judge has to verify an English claim against Arabic.
+        Swap each hit for its same-language twin when one exists; rank and
+        score stay those of the original hit."""
+        out = []
+        for hit in hits:
+            p = hit.payload
+            if p.get("lang") == lang or "chunk_id" not in p or "doc_id" not in p:
+                out.append(hit)
+                continue
+            twins, _ = self.client.scroll(
+                collection_name=self.collection,
+                scroll_filter=Filter(
+                    must=[
+                        FieldCondition(key="chunk_id", match=MatchValue(value=p["chunk_id"])),
+                        FieldCondition(key="doc_id", match=MatchValue(value=p["doc_id"])),
+                        FieldCondition(key="lang", match=MatchValue(value=lang)),
+                    ]
+                ),
+                limit=1,
+                with_payload=True,
+            )
+            if twins:
+                hit.payload = twins[0].payload
+            out.append(hit)
+        return out
+
+    def _retrieve_distinct(self, question: str, top_k_raw: int, top_k_distinct: int):
         query_vec = self.embed_model.encode([question], normalize_embeddings=False)[0].tolist()
         seen_groups = set()
         distinct = []
@@ -122,12 +173,7 @@ class RAGQueryEngine:
         return distinct
 
     def build_prompt(self, question: str, context_hits):
-        context_blocks = []
-        for hit in context_hits:
-            p = hit.payload
-            status = " (REPEALED -- no longer in force)" if p["is_repealed"] else ""
-            context_blocks.append(f"[{p['citation']}]{status}\n{p['text']}")
-        context = "\n\n".join(context_blocks)
+        context = "\n\n".join(format_context(hit.payload) for hit in context_hits)
 
         return f"""You are a legal assistant answering questions about the Egyptian Civil Code.
 Answer ONLY using the articles provided below. Every claim in your answer must be

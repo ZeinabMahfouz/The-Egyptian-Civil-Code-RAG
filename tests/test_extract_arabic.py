@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
-from extract_corpus import fix_arabic_word  # noqa: E402
+from extract_corpus import fix_arabic_word, is_repeal_notice  # noqa: E402
 
 
 def word(*glyphs):
@@ -46,3 +46,25 @@ def test_presentation_form_words_are_treated_as_arabic():
     # Some PDFs emit presentation forms (U+FEFB = lam-alef ligature) instead of
     # base letters; such a word must still be reversed.
     assert fix_arabic_word(word("ﻻ", "إ")) == "إﻻ"
+
+
+# --- repeal flag: a notice, not a mention ---
+
+NOTICE_54 = "ألغيت المواد من ٥٤ إلى ٨٠ بالقرار الجمهوري بالقانون رقم ٣٤٨ لسنة ١٩٥٦"
+NOTICE_389 = "المواد من ٣٨٩ إلى ٤١٧ ملغاة"
+
+
+def test_repeal_notices_flag_every_article_in_their_range():
+    assert all(is_repeal_notice(n, NOTICE_54) for n in (54, 67, 80))
+    assert all(is_repeal_notice(n, NOTICE_389) for n in (389, 400, 417))
+    assert is_repeal_notice(54, "x", "* Articles 54-80 have been repealed by Presidential Decree.")
+
+
+def test_articles_that_mention_repeal_are_not_repealed():
+    # Article 2 is live law *about* repeal -- it was flagged before the fix.
+    art2_ar = "لا يجوز إلغاء نص تشريعي إلا بتشريع لاحق ينص صراحة على هذا الإلغاء"
+    art2_en = "A provision of a law can only be repealed by a subsequent law expressly providing"
+    assert not is_repeal_notice(2, art2_ar, art2_en)
+    # A range that doesn't cover the article itself
+    assert not is_repeal_notice(388, "نص المادة", NOTICE_389)
+    assert not is_repeal_notice(81, NOTICE_54)

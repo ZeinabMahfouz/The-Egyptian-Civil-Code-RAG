@@ -62,6 +62,7 @@ RE_EN_ARTICLE = re.compile(r"^\s*Article\s*(\d+)\s*$")
 RE_EN_ARTICLE_LOOSE = re.compile(r"^\s*A?rticle\s*(\d+)\b\s*(.*)$")
 
 RE_REPEAL_RANGE = re.compile(r"المواد\s+من\s+([٠-٩]+)\s+إلى\s+([٠-٩]+)")
+RE_EN_REPEAL_RANGE = re.compile(r"Articles\s+(\d+)\s*[-\u2013]\s*(\d+)", re.I)
 RE_REPEAL_WORD = re.compile(r"ملغاة|ألغيت|ألغي|repealed|abolished", re.I)
 RE_BIS = re.compile(r"مكرر")
 
@@ -356,6 +357,28 @@ class ArticleRecord:
     flags: list = field(default_factory=list)
 
 
+def is_repeal_notice(n: int, *texts: str) -> bool:
+    """True only when a text *is* a repeal notice covering article n, e.g.
+    "ألغيت المواد من ٥٤ إلى ٨٠ ..." for any n in 54-80.
+
+    The old rule flagged any article whose text merely *contained* a repeal
+    word, which marked live law as repealed: Article 2 ("a provision can only
+    be repealed by a subsequent law"), Article 388 and Article 1034 talk about
+    repeal/cancellation without being repealed. The RAG then told users that
+    valid articles were "no longer in force". A notice names its own range,
+    so require the range *and* that n falls inside it."""
+    for t in texts:
+        if not RE_REPEAL_WORD.search(t):
+            continue
+        for m in RE_REPEAL_RANGE.finditer(t):
+            if ar_to_int(m.group(1)) <= n <= ar_to_int(m.group(2)):
+                return True
+        for m in RE_EN_REPEAL_RANGE.finditer(t):
+            if int(m.group(1)) <= n <= int(m.group(2)):
+                return True
+    return False
+
+
 def merge(ar_articles, en_articles, errors):
     records = {}
     for n in sorted(set(ar_articles) | set(en_articles)):
@@ -366,7 +389,7 @@ def merge(ar_articles, en_articles, errors):
             errors.append(f"[missing-english] article {n} found in Arabic stream only")
             continue
         ar, en = ar_articles[n], en_articles[n]
-        repealed = bool(RE_REPEAL_WORD.search(ar.text)) or bool(RE_REPEAL_WORD.search(en))
+        repealed = is_repeal_notice(n, ar.text, en)
         records[n] = ArticleRecord(
             article_number=n,
             book=ar.book,
@@ -413,7 +436,7 @@ def validate(records, errors, warnings, repeal_ranges_found, known_gaps=None):
         if len(rec.text_ar) > 6000:
             warnings.append(f"Article {n}: text_ar suspiciously long ({len(rec.text_ar)} chars)")
     repealed = sum(1 for r in records.values() if r.is_repealed)
-    warnings.append(f"{repealed} articles flagged repealed (expect >= 56)")
+    warnings.append(f"{repealed} articles flagged repealed (expect exactly 56: 54-80, 389-417)")
     if repeal_ranges_found:
         warnings.append(f"RE_REPEAL_RANGE matched {len(repeal_ranges_found)} time(s):")
         warnings.extend(f"  - {r}" for r in repeal_ranges_found)

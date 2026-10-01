@@ -980,3 +980,42 @@ text: "العقد شريعة المتعاقدين، فلا يجوز نقضه و�
 أو للأسباب التي يقررها القانون". Three of those words (فلا، ولا، إلا) are
 lam-alef words that were corrupted in the old index. The answer still covers
 only the first paragraph of the article, which is a limit of the 1.7B model.
+
+## First GPU sweep: what the scores were actually measuring
+
+The first Kaggle sweep (Qwen3-8B on vLLM, 20 questions, 5 configs) gave
+faithfulness 0.54–0.60 and answer relevancy 0.48–0.56. Retrieval was fine
+(article hit rate 0.875 in every config). Reading the per-question rows
+showed four separate causes. Two were real bugs, two were measurement.
+
+| Cause | Example | Kind | Fix |
+|---|---|---|---|
+| Live articles flagged repealed | Article 2 ("a provision can only be **repealed** by a subsequent law") | data bug | repeal = a notice whose own range covers the article (`is_repeal_notice`) |
+| Wrong-language context | English question, Arabic text of Article 43 | retrieval bug | swap each hit for its same-language twin |
+| Judge couldn't see article labels | "according to Article 44" counted as unsupported | measurement | RAGAS gets the context exactly as the model saw it (`format_context`) |
+| Correct refusals scored ~0 | "the provided articles do not contain information about the minimum wage" | measurement | out-of-corpus questions gated on `refusal_rate`, not averaged into faithfulness |
+
+**The repeal bug was the most serious.** Any article whose text *contained*
+"repealed", "abolished" or "ألغي" was flagged. That marked 3 live articles
+(2, 388, 1034) as repealed, so the system told users that valid law was "no
+longer in force". The flagged set is now exactly the two notice ranges
+(54–80 and 389–417, 56 articles), and `test_corpus_validation.py` fails if
+anything outside them is flagged.
+
+**Refusals are scored, not hidden.** Excluding out-of-corpus questions from
+the faithfulness mean could hide a system that declines everything. Two
+metrics prevent that: `refusal_rate` (out-of-corpus questions declined; the
+CI gate requires ≥ 75%) and `false_refusal_rate` (in-corpus questions wrongly
+declined). Both are logged to MLflow for every config.
+
+**Chunk size made no measurable difference.** All five configs retrieved the
+same articles for these 20 questions, and faithfulness spread was 0.07, about
+two answers. `best_of` now keeps the incumbent (`baseline-700`, what
+`params.yaml` builds) unless a challenger beats it by at least 0.05. The sweep
+picked `split-400` on +0.037, which is noise. Re-chunking, re-indexing and
+re-deploying for noise is cost and risk with no benefit.
+
+**Still open:** RAGAS asks for 3 generations per answer for answer relevancy;
+vLLM through LangChain returns 1 ("LLM returned 1 generations instead of
+requested 3"). The metric is still computed, from one generated question
+instead of three, so it is noisier.

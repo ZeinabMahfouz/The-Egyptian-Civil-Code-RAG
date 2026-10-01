@@ -19,6 +19,8 @@ from pathlib import Path
 
 from prometheus_client import Counter, Gauge, Histogram
 
+from egyptian_civil_code_rag.refusal import is_in_corpus
+
 # CPU generation takes ~30s-2min; GPU/vLLM should land well under 10s.
 # Buckets cover both, so the same histogram shows the before/after.
 LATENCY_BUCKETS = (0.1, 0.5, 1, 2.5, 5, 10, 20, 30, 45, 60, 90, 120, 180, 300)
@@ -85,6 +87,7 @@ def load_ragas_faithfulness(path: Path = Path("reports/ragas_results.json")) -> 
         r["faithfulness"]
         for r in rows
         if isinstance(r, dict)
+        and is_in_corpus(r)  # a declined out-of-corpus question isn't a faithfulness sample
         and isinstance(r.get("faithfulness"), (int, float))
         and not math.isnan(r["faithfulness"])
     ]

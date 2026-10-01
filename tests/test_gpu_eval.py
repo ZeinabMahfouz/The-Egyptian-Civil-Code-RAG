@@ -121,6 +121,41 @@ def test_best_of_prefers_faithfulness_then_precision():
     assert best["config"].name == "c"
 
 
+def test_best_of_keeps_incumbent_when_gain_is_noise():
+    def r(name, f):
+        return {"config": gpu_eval.ChunkConfig(name, 1), "scores": {"faithfulness": f}}
+
+    # the real sweep: 0.567 baseline vs 0.604 -- one answer's worth, not a win
+    assert gpu_eval.best_of([r("baseline", 0.567), r("split", 0.604)])["config"].name == "baseline"
+    assert gpu_eval.best_of([r("baseline", 0.567), r("split", 0.70)])["config"].name == "split"
+
+
+def test_ragas_means_exclude_out_of_corpus_and_count_refusals():
+    def row(cat, faith, response):
+        return {"_category": cat, "faithfulness": faith, "response": response}
+
+    rows = [
+        row("substantive", 1.0, "Article 147 says ..."),
+        row("substantive", 0.5, "The articles do not contain it."),
+        row("out_of_corpus", 0.0, "Not covered by the provided articles."),
+        row("out_of_corpus", 0.0, "Theft is punished by ..."),
+    ]
+    s = gpu_eval.mean_scores(rows, metrics=("faithfulness",))
+    assert s["faithfulness"] == 0.75 and s["faithfulness_n_scored"] == 2
+    assert s["refusal_rate"] == 0.5  # one of two out-of-corpus questions declined
+    assert s["false_refusal_rate"] == 0.5  # one in-corpus question wrongly declined
+
+
+def test_judge_sees_citation_and_repeal_status():
+    from egyptian_civil_code_rag.query import format_context
+
+    ctx = format_context(
+        {"citation": "Egyptian Civil Code, Article 44", "is_repealed": False, "text": "21 years"}
+    )
+    assert ctx.startswith("[Egyptian Civil Code, Article 44]") and ctx.endswith("21 years")
+    assert "REPEALED" in format_context({"citation": "A", "is_repealed": True, "text": "x"})
+
+
 @pytest.fixture(autouse=True)
 def isolated_mlflow(tmp_path, monkeypatch):
     # gpu_eval.main sets its own sqlite URI under --work-dir; make sure nothing
