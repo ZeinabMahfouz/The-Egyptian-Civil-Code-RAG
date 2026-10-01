@@ -912,3 +912,12 @@ live answers. The gate means it cannot return silently.
 corrupted text. Arabic retrieval quality and any Arabic RAGAS score before
 this fix are not comparable with scores after it. The corpus and index are
 rebuilt with `dvc repro`, and the GPU RAGAS run uses the fixed corpus.
+
+**Verified live after the rebuild:** the same Arabic question ("ما حكم المادة
+147 من القانون المدني؟") on the same model (Qwen3-1.7B). Before the fix, the
+answer paraphrased the article with garbled wording ("إداء الالتزام مُعَلَّمًا
+أو مُعَلَّمًا بشكل غير مُمكن"). After it, the answer reproduces the official
+text: "العقد شريعة المتعاقدين، فلا يجوز نقضه ولا تعديله إلا باتفاق الطرفين
+أو للأسباب التي يقررها القانون". Three of those words (فلا، ولا، إلا) are
+lam-alef words that were corrupted in the old index. The answer still covers
+only the first paragraph of the article, which is a limit of the 1.7B model.
