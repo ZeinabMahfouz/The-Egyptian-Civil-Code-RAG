@@ -972,3 +972,11 @@ The vLLM client backend is tested against a mock OpenAI-compatible server
 pass, below threshold, stale params, stale corpus, too few scored questions,
 and rejecting the old CPU report format. **Not tested here:** vLLM on T4
 itself and the RAGAS judge calls. That is the Kaggle run.
+**Verified live after the rebuild:** the same Arabic question ("ما حكم المادة
+147 من القانون المدني؟") on the same model (Qwen3-1.7B). Before the fix, the
+answer paraphrased the article with garbled wording ("إداء الالتزام مُعَلَّمًا
+أو مُعَلَّمًا بشكل غير مُمكن"). After it, the answer reproduces the official
+text: "العقد شريعة المتعاقدين، فلا يجوز نقضه ولا تعديله إلا باتفاق الطرفين
+أو للأسباب التي يقررها القانون". Three of those words (فلا، ولا، إلا) are
+lam-alef words that were corrupted in the old index. The answer still covers
+only the first paragraph of the article, which is a limit of the 1.7B model.
