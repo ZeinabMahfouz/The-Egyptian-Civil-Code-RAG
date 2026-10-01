@@ -913,6 +913,65 @@ corrupted text. Arabic retrieval quality and any Arabic RAGAS score before
 this fix are not comparable with scores after it. The corpus and index are
 rebuilt with `dvc repro`, and the GPU RAGAS run uses the fixed corpus.
 
+---
+
+## GPU evaluation: vLLM on Kaggle, the same model as judge, a gate that can go stale
+
+**Decision:** Kaggle runs the GPU work (T4 x2, Internet on). vLLM serves
+Qwen3-8B (fp16, tensor-parallel 2) behind its OpenAI-compatible API.
+`scripts/gpu_eval.py` builds one index per chunking config with the same
+chunking and embedding code as `dvc repro`, answers with the vLLM model,
+scores with RAGAS, and logs every run to MLflow. The best config is then
+scored on all 54 questions and registered.
+
+**Fixing the CPU judging failure:** the earlier failure (27m55s for one
+unparseable faithfulness call) came from a bare `HuggingFacePipeline` with no
+chat template, on a 1.7B model. The judge now goes through `ChatOpenAI` to
+vLLM. The server applies Qwen3's chat template, and thinking mode is off via
+`chat_template_kwargs`. It is an 8B model.
+
+**Known weakness, stated up front:** Qwen3-8B judges its own answers. A
+model grading itself tends to be lenient. The alternative was an external
+API judge, which would send the evaluation questions and legal context to a
+third party and cost money. The mitigation is a second, judge-free metric
+logged on every run: `article_hit_rate`, the share of questions whose
+expected article appears in the cited sources. Where RAGAS and
+`article_hit_rate` disagree, that is a signal about the judge, not
+necessarily about retrieval.
+
+**Separate environments, again:** vLLM pins its own torch and transformers.
+RAGAS pins `openai<2` through `instructor`. vLLM therefore runs from its own
+venv as a server, and evaluation runs in the notebook's Python. This is the
+same resolution as guardrails-ai versus the pipeline stack.
+
+**What gets registered:** the "model" in the MLflow Registry is the winning
+chunking/embedding config (a params.yaml wrapped as a pyfunc model). The
+LLM is a fixed public checkpoint and the config is the part being optimised.
+MLflow 3 replaced stages with aliases, so promotion means the alias
+`production` (`models:/civil-code-rag-chunking@production`).
+
+**Overlap:** article-level chunks never overlap, so `overlap=0` is logged
+explicitly rather than left out. This is a design property, not a missing
+experiment.
+
+**CI gate without a GPU:** CI cannot regenerate and judge answers on every
+push. `scripts/ragas_gate.py` instead gates on the committed evaluation:
+faithfulness on the 20-question CI subset must be at least 0.75, and the
+evaluation must still describe the repo. If its corpus md5 (from dvc.lock)
+or its chunking/embedding params differ from what the repo now builds, the
+gate fails as stale. Changing the corpus or chunker therefore keeps CI red
+until the GPU evaluation is re-run and committed. Without the staleness
+check, the gate would be a badge, not a gate.
+
+**Tested here (no GPU):** the sweep end to end in dry-run mode, with a fake
+embedder and no LLM. That covers real chunking per config, indexing,
+retrieval, `article_hit_rate`, one MLflow run per config, best-config
+selection, registry with alias, and loading the registered config back.
+The vLLM client backend is tested against a mock OpenAI-compatible server
+(full answers, streaming, token usage, thinking off). The gate is tested for
+pass, below threshold, stale params, stale corpus, too few scored questions,
+and rejecting the old CPU report format. **Not tested here:** vLLM on T4
+itself and the RAGAS judge calls. That is the Kaggle run.
 **Verified live after the rebuild:** the same Arabic question ("ما حكم المادة
 147 من القانون المدني؟") on the same model (Qwen3-1.7B). Before the fix, the
 answer paraphrased the article with garbled wording ("إداء الالتزام مُعَلَّمًا

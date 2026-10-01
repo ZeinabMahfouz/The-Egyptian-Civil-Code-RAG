@@ -64,10 +64,14 @@ def create_app(
 
         @asynccontextmanager
         async def lifespan(app: FastAPI):
-            from egyptian_civil_code_rag.backends import transformers_backend
+            from egyptian_civil_code_rag.backends import backend_from_env
 
-            print(f"[startup] loading {DEV_MODEL_NAME} (dev backend -- see docs/decisions.md)")
-            app.state.engine = RAGQueryEngine(generate_fn=transformers_backend(DEV_MODEL_NAME))
+            # VLLM_BASE_URL set -> generation on a vLLM server; otherwise the
+            # local CPU dev backend (see docs/decisions.md).
+            generate_fn = backend_from_env(DEV_MODEL_NAME)
+            where = os.environ.get("VLLM_BASE_URL", "local transformers")
+            print(f"[startup] generator: {generate_fn.model_name} via {where}")
+            app.state.engine = RAGQueryEngine(generate_fn=generate_fn)
             print("[startup] ready")
             yield
             langfuse.flush()  # don't drop the last traces on shutdown

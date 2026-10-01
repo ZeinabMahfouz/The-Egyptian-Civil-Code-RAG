@@ -36,13 +36,21 @@ def extract_referenced_article_numbers(question: str) -> list[int]:
 
 class RAGQueryEngine:
     def __init__(
-        self, params_path: Path = Path("params.yaml"), generate_fn: Callable[[str], str] = None
+        self,
+        params_path: Path = Path("params.yaml"),
+        generate_fn: Callable[[str], str] = None,
+        embed_model=None,
+        client=None,
+        collection: str | None = None,
     ):
+        """embed_model / client / collection override what params.yaml says --
+        used by the GPU evaluation sweep, which builds several indexes and
+        reuses one loaded embedding model across them."""
         with open(params_path, encoding="utf-8") as f:
             params = yaml.safe_load(f)
-        self.embed_model = SentenceTransformer(params["embedding"]["model_name"])
-        self.client = QdrantClient(path=params["qdrant"]["storage_path"])
-        self.collection = params["qdrant"]["collection_name"]
+        self.embed_model = embed_model or SentenceTransformer(params["embedding"]["model_name"])
+        self.client = client or QdrantClient(path=params["qdrant"]["storage_path"])
+        self.collection = collection or params["qdrant"]["collection_name"]
         self.generate_fn = generate_fn
         self._check_index_has_doc_ids()
 

@@ -1,0 +1,209 @@
+{
+  "description": "Fixed 20-question stratified subset of eval_questions.json (see scripts/make_ci_subset.py). Used by the MLflow chunking sweep and the CI faithfulness gate.",
+  "questions": [
+    {
+      "id": "s01_en",
+      "category": "substantive",
+      "language": "en",
+      "question": "What happens if unforeseen exceptional circumstances make contract performance excessively burdensome for the debtor?",
+      "expected_articles": [
+        147
+      ],
+      "ground_truth": "The judge may, according to the circumstances and after weighing both parties' interests, reduce the excessive obligation to a reasonable limit. Any agreement to the contrary is void."
+    },
+    {
+      "id": "s01_ar",
+      "category": "substantive",
+      "language": "ar",
+      "question": "ماذا يحدث إذا جعلت ظروف استثنائية غير متوقعة تنفيذ العقد مرهقاً للمدين؟",
+      "expected_articles": [
+        147
+      ],
+      "ground_truth": "The judge may, according to the circumstances and after weighing both parties' interests, reduce the excessive obligation to a reasonable limit. Any agreement to the contrary is void."
+    },
+    {
+      "id": "s02_en",
+      "category": "substantive",
+      "language": "en",
+      "question": "In the absence of an applicable legal provision, what does the judge decide according to?",
+      "expected_articles": [
+        1
+      ],
+      "ground_truth": "The judge decides according to custom, and in the absence of custom, according to the principles of Islamic (Moslem) law, and in the absence of such principles, according to natural justice and equity."
+    },
+    {
+      "id": "s02_ar",
+      "category": "substantive",
+      "language": "ar",
+      "question": "إذا لم يوجد نص تشريعي ينطبق على مسألة معينة، فبماذا يحكم القاضي؟",
+      "expected_articles": [
+        1
+      ],
+      "ground_truth": "The judge decides according to custom, and in the absence of custom, according to the principles of Islamic (Moslem) law, and in the absence of such principles, according to natural justice and equity."
+    },
+    {
+      "id": "s03_en",
+      "category": "substantive",
+      "language": "en",
+      "question": "How can a legal provision be repealed?",
+      "expected_articles": [
+        2
+      ],
+      "ground_truth": "A provision of law can only be repealed by a subsequent law that expressly provides for repeal, contains a provision inconsistent with the earlier law, or regulates anew a matter already regulated by the earlier law."
+    },
+    {
+      "id": "s03_ar",
+      "category": "substantive",
+      "language": "ar",
+      "question": "كيف يمكن إلغاء نص تشريعي؟",
+      "expected_articles": [
+        2
+      ],
+      "ground_truth": "A provision of law can only be repealed by a subsequent law that expressly provides for repeal, contains a provision inconsistent with the earlier law, or regulates anew a matter already regulated by the earlier law."
+    },
+    {
+      "id": "s04_en",
+      "category": "substantive",
+      "language": "en",
+      "question": "At what age does a person reach legal majority in Egypt?",
+      "expected_articles": [
+        44
+      ],
+      "ground_truth": "A person attaining majority in possession of their mental faculties, and not under legal disability, has full legal capacity. Majority is fixed at twenty-one complete Gregorian years."
+    },
+    {
+      "id": "s04_ar",
+      "category": "substantive",
+      "language": "ar",
+      "question": "في أي سن يبلغ الشخص سن الرشد القانوني في مصر؟",
+      "expected_articles": [
+        44
+      ],
+      "ground_truth": "A person attaining majority in possession of their mental faculties, and not under legal disability, has full legal capacity. Majority is fixed at twenty-one complete Gregorian years."
+    },
+    {
+      "id": "l01_en",
+      "category": "article_lookup",
+      "language": "en",
+      "question": "What does Article 43 say?",
+      "expected_articles": [
+        43
+      ],
+      "ground_truth": "It concerns the domicile of a missing or absent person, and the special domicile of a minor who has attained eighteen years for acts they are legally capable of performing."
+    },
+    {
+      "id": "l02_ar",
+      "category": "article_lookup",
+      "language": "ar",
+      "question": "ما هو نص المادة 52؟",
+      "expected_articles": [
+        52
+      ],
+      "ground_truth": "It enumerates juristic persons, including the state, provinces, towns and villages, and other public entities the law grants legal personality."
+    },
+    {
+      "id": "l03_en",
+      "category": "article_lookup",
+      "language": "en",
+      "question": "What does Article 274 say?",
+      "expected_articles": [
+        274
+      ],
+      "ground_truth": "An obligation with a suspensive term becomes due on the date the term expires; before that, the creditor may take measures to protect his rights if he fears the debtor may become insolvent."
+    },
+    {
+      "id": "l04_ar",
+      "category": "article_lookup",
+      "language": "ar",
+      "question": "ما محتوى المادة 388؟",
+      "expected_articles": [
+        388
+      ],
+      "ground_truth": "A debtor cannot renounce the benefit of prescription before acquiring the right to invoke it, nor agree to a different prescription term than the one fixed by law."
+    },
+    {
+      "id": "r01_en",
+      "category": "repealed_status",
+      "language": "en",
+      "question": "Is the law about associations still in force?",
+      "expected_articles": [
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60
+      ],
+      "ground_truth": "No. Articles 54 to 80 on associations were repealed by Presidential Decree Law No. 348 of 1956."
+    },
+    {
+      "id": "r02_ar",
+      "category": "repealed_status",
+      "language": "ar",
+      "question": "هل ما زالت أحكام الجمعيات سارية؟",
+      "expected_articles": [
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60
+      ],
+      "ground_truth": "No. Articles 54 to 80 on associations were repealed by Presidential Decree Law No. 348 of 1956."
+    },
+    {
+      "id": "r03_en",
+      "category": "repealed_status",
+      "language": "en",
+      "question": "Is Article 65 currently valid law?",
+      "expected_articles": [
+        65
+      ],
+      "ground_truth": "No. Article 65 falls within Articles 54-80, which were repealed by Presidential Decree Law No. 348 of 1956."
+    },
+    {
+      "id": "r04_ar",
+      "category": "repealed_status",
+      "language": "ar",
+      "question": "هل المادة 400 لا تزال نافذة؟",
+      "expected_articles": [
+        400
+      ],
+      "ground_truth": "No. Article 400 falls within Articles 389-417, which were repealed."
+    },
+    {
+      "id": "o01_en",
+      "category": "out_of_corpus",
+      "language": "en",
+      "question": "What does Egyptian criminal law say about theft?",
+      "expected_articles": [],
+      "ground_truth": "Not covered -- this is the Civil Code, not the Penal Code. The system should decline to answer rather than guess."
+    },
+    {
+      "id": "o02_ar",
+      "category": "out_of_corpus",
+      "language": "ar",
+      "question": "ما هو حكم القانون الجنائي المصري في جريمة السرقة؟",
+      "expected_articles": [],
+      "ground_truth": "Not covered -- this is the Civil Code, not the Penal Code. The system should decline to answer rather than guess."
+    },
+    {
+      "id": "o03_en",
+      "category": "out_of_corpus",
+      "language": "en",
+      "question": "What is the minimum wage in Egypt according to this code?",
+      "expected_articles": [],
+      "ground_truth": "Not covered -- the Civil Code does not set labor minimum-wage rules. The system should decline to answer rather than guess."
+    },
+    {
+      "id": "o05_ar",
+      "category": "out_of_corpus",
+      "language": "ar",
+      "question": "ما نص المادة 5000؟",
+      "expected_articles": [],
+      "ground_truth": "Article 5000 does not exist in this corpus (the code runs from Article 1 to 1149). The system should say so rather than fabricate content."
+    }
+  ]
+}

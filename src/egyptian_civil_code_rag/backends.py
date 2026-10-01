@@ -57,3 +57,82 @@ def transformers_backend(model_name: str, max_new_tokens: int = 400):
     generate.last_usage = None
     generate.stream = stream
     return generate
+
+
+def openai_backend(
+    base_url: str,
+    model: str,
+    max_tokens: int = 400,
+    api_key: str = "EMPTY",
+    temperature: float = 0.0,
+    http_client=None,
+):
+    """Generation through an OpenAI-compatible server -- vLLM's
+    `vllm serve` / `python -m vllm.entrypoints.openai.api_server`.
+
+    Same interface as transformers_backend: call it for a full answer, use
+    .stream(prompt) for pieces, read .last_usage for token counts (exact,
+    from the server's own usage report). Qwen3's thinking mode is switched
+    off server-side via chat_template_kwargs, matching the local backend."""
+    from openai import OpenAI
+
+    client = OpenAI(base_url=base_url, api_key=api_key, http_client=http_client)
+    extra = {"chat_template_kwargs": {"enable_thinking": False}}
+
+    def _messages(prompt: str):
+        return [{"role": "user", "content": prompt}]
+
+    def generate(prompt: str) -> str:
+        resp = client.chat.completions.create(
+            model=model,
+            messages=_messages(prompt),
+            max_tokens=max_tokens,
+            temperature=temperature,
+            extra_body=extra,
+        )
+        if resp.usage is not None:
+            generate.last_usage = {
+                "input": resp.usage.prompt_tokens,
+                "output": resp.usage.completion_tokens,
+            }
+        return strip_thinking(resp.choices[0].message.content or "")
+
+    def stream(prompt: str):
+        chunks = client.chat.completions.create(
+            model=model,
+            messages=_messages(prompt),
+            max_tokens=max_tokens,
+            temperature=temperature,
+            extra_body=extra,
+            stream=True,
+            stream_options={"include_usage": True},
+        )
+        for chunk in chunks:
+            if chunk.usage is not None:
+                generate.last_usage = {
+                    "input": chunk.usage.prompt_tokens,
+                    "output": chunk.usage.completion_tokens,
+                }
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+
+    generate.model_name = model
+    generate.last_usage = None
+    generate.stream = stream
+    return generate
+
+
+def backend_from_env(default_model: str = "Qwen/Qwen3-1.7B"):
+    """Picks the generation backend from the environment, so the same API
+    code runs on a laptop (CPU, transformers) or against a GPU vLLM server:
+
+        VLLM_BASE_URL=http://host:8000/v1 GEN_MODEL=Qwen/Qwen3-8B  -> vLLM
+        (unset)                                                   -> local transformers
+    """
+    import os
+
+    model = os.environ.get("GEN_MODEL", default_model)
+    base_url = os.environ.get("VLLM_BASE_URL")
+    if base_url:
+        return openai_backend(base_url, model)
+    return transformers_backend(model)

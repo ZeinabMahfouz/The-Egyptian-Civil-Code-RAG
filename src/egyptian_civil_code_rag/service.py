@@ -43,10 +43,13 @@ class AskResponse(BaseModel):
 )
 class CivilCodeRAG:
     def __init__(self) -> None:
-        from egyptian_civil_code_rag.backends import transformers_backend
+        from egyptian_civil_code_rag.backends import backend_from_env
 
-        print(f"[startup] loading {MODEL_NAME} (CPU dev backend)")
-        self.engine = RAGQueryEngine(generate_fn=transformers_backend(MODEL_NAME))
+        # VLLM_BASE_URL set -> BentoML in front, vLLM serving the LLM.
+        generate_fn = backend_from_env(MODEL_NAME)
+        where = os.environ.get("VLLM_BASE_URL", "local transformers")
+        print(f"[startup] generator: {generate_fn.model_name} via {where}")
+        self.engine = RAGQueryEngine(generate_fn=generate_fn)
         self.langfuse = make_langfuse()
         self.pipeline = TracedPipeline(self.engine, PIIGuard(), self.langfuse, service="bentoml")
         # One generation at a time: on CPU, parallel generations just fight

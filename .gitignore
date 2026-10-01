@@ -222,3 +222,6 @@ mlruns/
 # Canary rollout: nginx access logs
 deploy/canary/logs/
 .venv-serve/
+
+# GPU evaluation working dir (scripts/gpu_eval.py); results worth keeping are copied to reports/
+eval_out/

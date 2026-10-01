@@ -76,9 +76,11 @@ def load_ragas_faithfulness(path: Path = Path("reports/ragas_results.json")) -> 
     null -- that must leave the gauge unset (no sample, alert stays quiet),
     not report 0.0 and page someone about a judge that never ran."""
     try:
-        rows = json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
+    # GPU runs write {"meta", "aggregate", "rows"}; the old CPU run a bare list.
+    rows = data.get("rows", []) if isinstance(data, dict) else data
     scores = [
         r["faithfulness"]
         for r in rows
