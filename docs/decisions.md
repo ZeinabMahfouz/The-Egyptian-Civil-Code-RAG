@@ -1080,3 +1080,54 @@ from tuning. See the previous section.
 
 **Evidence:** `reports/mlflow_comparison.png` (all runs with metrics and
 params) and `reports/mlflow_registry.png` (the registered model).
+
+## Quantization: AWQ 4-bit serves the same answers ~2.7x faster
+
+**Setup.** `Qwen/Qwen3-8B` (fp16) vs `Qwen/Qwen3-8B-AWQ` (Qwen's official
+4-bit AWQ checkpoint). Both run on vLLM with 2x T4 and tensor parallel 2,
+with the same retrieval (baseline-700 index) and the same 54 questions.
+`scripts/quant_compare.py` runs it, `notebooks/kaggle_quantization.ipynb`
+holds the steps, and the results are in `reports/quantization.md`.
+
+**The judge was fp16 for both answer sets.** Letting AWQ judge its own
+answers would change the generator and the judge at once, so a difference
+could come from either. Both servers can't fit on the GPUs together, so the
+run was: AWQ answers → stop → fp16 answers → fp16 judges both.
+
+| | fp16 | AWQ 4-bit | |
+|---|---|---|---|
+| Faithfulness | 0.886 | 0.888 | drop −0.002 (limit 0.03): **PASS** |
+| Context precision / recall | 0.908 / 0.854 | 0.917 / 0.854 | same retrieval |
+| Answer relevancy | 0.701 | 0.706 | |
+| Out-of-corpus declined | 4 of 6 | 4 of 6 | |
+| Latency p50 / p95 (one user) | 2.81 s / 9.42 s | **1.06 s / 2.51 s** | 2.7x / 3.8x faster |
+| Time to first token p50 | 0.24 s | 0.17 s | |
+| Decode speed p50 | 18 tok/s | **55 tok/s** | 3.0x |
+| 8 concurrent: requests/s | 2.24 | **4.21** | 1.9x |
+| 8 concurrent: latency p95 | 8.40 s | 3.92 s | |
+| Weights per GPU | 7.64 GiB | **2.85 GiB** | 2.7x less |
+
+**Why it's faster, not slower.** On the T4, vLLM can't use the Marlin
+kernels (they need a newer GPU), so the 4-bit weights are unpacked by the
+plain AWQ kernel. That kernel costs compute. But generating tokens one at a
+time is limited by how fast the weights are read from GPU memory, not by
+compute, and 4-bit weights are about a quarter of the fp16 bytes. Reading
+less memory per token outweighed the unpacking cost.
+
+**Quality didn't move.** The +0.002 faithfulness is noise (about a tenth of
+one answer). The honest claim is "no measurable loss", not "AWQ is better".
+
+**Decision:** serve AWQ. It gives the same answers at a third of the
+latency with a third of the weight memory. For serving, set
+`GEN_MODEL=Qwen/Qwen3-8B-AWQ` with `VLLM_BASE_URL`. fp16 stays the RAGAS
+judge, so evaluation keeps one fixed yardstick.
+
+**Limits.**
+- One run on one day: the latency numbers are a single measurement, not an
+  average over runs.
+- 54 questions: "no measurable loss" holds at this scale. A small
+  degradation (under ~0.02) would not be visible.
+- Fitting AWQ on a single T4 (it would need about 5.7 GiB in total) is
+  plausible from the weight size, but was not measured.
+- Throughput is counted in streamed chunks, which vLLM emits at about one
+  token each, so it is close to tokens/s but not exact.
