@@ -226,3 +226,4 @@ deploy/canary/logs/
 # GPU evaluation working dir (scripts/gpu_eval.py); results worth keeping are copied to reports/
 eval_out/
 gpu_eval_results.zip
+quant_results.zip

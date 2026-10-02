@@ -1,0 +1,66 @@
+{
+  "quality": {
+    "fp16": {
+      "faithfulness": 0.88596757852077,
+      "faithfulness_n_scored": 47,
+      "context_precision": 0.9079861110447048,
+      "context_precision_n_scored": 48,
+      "context_recall": 0.8541666666666666,
+      "context_recall_n_scored": 48,
+      "answer_relevancy": 0.7011381026663965,
+      "answer_relevancy_n_scored": 48,
+      "refusal_rate": 0.6666666666666666,
+      "false_refusal_rate": 0.020833333333333332
+    },
+    "awq": {
+      "faithfulness": 0.8875000000000001,
+      "faithfulness_n_scored": 48,
+      "context_precision": 0.9166666665998263,
+      "context_precision_n_scored": 48,
+      "context_recall": 0.8541666666666666,
+      "context_recall_n_scored": 48,
+      "answer_relevancy": 0.7064093534850358,
+      "answer_relevancy_n_scored": 48,
+      "refusal_rate": 0.6666666666666666,
+      "false_refusal_rate": 0.020833333333333332
+    }
+  },
+  "latency": {
+    "fp16": {
+      "latency_p50_s": 2.8054468699997415,
+      "latency_p95_s": 9.421411793000061,
+      "ttft_p50_s": 0.24099078300014298,
+      "ttft_p95_s": 0.35447900799999843,
+      "tokens_per_s_p50": 18.275332345825426,
+      "concurrent_requests_per_s": 2.244320206742186,
+      "concurrent_tokens_per_s": 149.20573226304535,
+      "concurrent_latency_p95_s": 8.403551726999922
+    },
+    "awq": {
+      "latency_p50_s": 1.0617444490001162,
+      "latency_p95_s": 2.51047370099991,
+      "ttft_p50_s": 0.16832121099992037,
+      "ttft_p95_s": 0.2593896680000398,
+      "tokens_per_s_p50": 55.01694889612154,
+      "concurrent_requests_per_s": 4.20984628692719,
+      "concurrent_tokens_per_s": 285.0221856482557,
+      "concurrent_latency_p95_s": 3.9211885500001245
+    }
+  },
+  "memory": {
+    "fp16": {
+      "weights_gib_per_gpu": 7.64,
+      "model": "Qwen/Qwen3-8B"
+    },
+    "awq": {
+      "weights_gib_per_gpu": 2.85,
+      "model": "Qwen/Qwen3-8B-AWQ"
+    }
+  },
+  "faithfulness_drop": -0.0015324214792300506,
+  "max_allowed_drop": 0.03,
+  "passed": true,
+  "speedup_latency_p50": 2.642299540762124,
+  "speedup_concurrent_rps": 1.8757779189798078,
+  "judge": "Qwen/Qwen3-8B"
+}
