@@ -104,35 +104,42 @@ def build_index(cfg: ChunkConfig, corpus: list, embed_model, out_dir: Path, batc
 # --- answering ----------------------------------------------------------------
 
 
+def make_row(q: dict, hits, answer: str) -> dict:
+    """One evaluation row: what RAGAS reads (user_input, retrieved_contexts,
+    response, reference) plus underscore-prefixed bookkeeping it ignores."""
+    # The judge sees each article exactly as the generator did (citation,
+    # repeal status, text) -- see format_context.
+    cited = {n for h in hits for n in h.payload["article_numbers"]}
+    expected = set(q.get("expected_articles") or [])
+    return {
+        "user_input": q["question"],
+        "retrieved_contexts": [format_context(h.payload) for h in hits],
+        "response": answer,
+        "reference": q["ground_truth"],
+        "_id": q["id"],
+        "_category": q["category"],
+        "_language": q["language"],
+        "_sources": [h.payload["citation"] for h in hits],
+        "_expected_articles": sorted(expected),
+        # None for out-of-corpus questions (nothing to hit)
+        "_article_hit": (bool(expected & cited) if expected else None),
+    }
+
+
+NO_CONTEXT_ANSWER = "No relevant articles found."
+
+
 def answer_questions(engine: RAGQueryEngine, questions: list, workers: int = 4) -> list:
     """Real retrieval + generation for every question. Threads overlap the
     vLLM calls (the server batches them); retrieval is cheap."""
 
     def one(q):
         hits = engine.retrieve(q["question"])
-        # The judge sees each article exactly as the generator did (citation,
-        # repeal status, text) -- see format_context.
-        contexts = [format_context(h.payload) for h in hits]
-        sources = [h.payload["citation"] for h in hits]
         if hits:
             answer = engine.generate_fn(engine.build_prompt(q["question"], hits)).strip()
         else:
-            answer = "No relevant articles found."
-        cited = {n for h in hits for n in h.payload["article_numbers"]}
-        expected = set(q.get("expected_articles") or [])
-        return {
-            "user_input": q["question"],
-            "retrieved_contexts": contexts,
-            "response": answer,
-            "reference": q["ground_truth"],
-            "_id": q["id"],
-            "_category": q["category"],
-            "_language": q["language"],
-            "_sources": sources,
-            "_expected_articles": sorted(expected),
-            # None for out-of-corpus questions (nothing to hit)
-            "_article_hit": (bool(expected & cited) if expected else None),
-        }
+            answer = NO_CONTEXT_ANSWER
+        return make_row(q, hits, answer)
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         return list(pool.map(one, questions))
