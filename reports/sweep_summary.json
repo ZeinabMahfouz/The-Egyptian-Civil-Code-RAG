@@ -1,0 +1,70 @@
+{
+  "best": "baseline-700",
+  "runs": {
+    "baseline-700": {
+      "faithfulness": 0.8571428571428572,
+      "faithfulness_n_scored": 15,
+      "context_precision": 0.8124999999354167,
+      "context_precision_n_scored": 16,
+      "context_recall": 0.8125,
+      "context_recall_n_scored": 16,
+      "answer_relevancy": 0.661054469043222,
+      "answer_relevancy_n_scored": 16,
+      "refusal_rate": 0.75,
+      "false_refusal_rate": 0.0625,
+      "article_hit_rate": 0.875
+    },
+    "split-400": {
+      "faithfulness": 0.8238095238095239,
+      "faithfulness_n_scored": 15,
+      "context_precision": 0.8333333332640624,
+      "context_precision_n_scored": 16,
+      "context_recall": 0.8125,
+      "context_recall_n_scored": 16,
+      "answer_relevancy": 0.6689131274188912,
+      "answer_relevancy_n_scored": 16,
+      "refusal_rate": 0.75,
+      "false_refusal_rate": 0.0625,
+      "article_hit_rate": 0.875
+    },
+    "split-1200": {
+      "faithfulness": 0.9015873015873016,
+      "faithfulness_n_scored": 15,
+      "context_precision": 0.81249999993125,
+      "context_precision_n_scored": 16,
+      "context_recall": 0.8125,
+      "context_recall_n_scored": 16,
+      "answer_relevancy": 0.6337787147732307,
+      "answer_relevancy_n_scored": 16,
+      "refusal_rate": 0.75,
+      "false_refusal_rate": 0.0625,
+      "article_hit_rate": 0.875
+    },
+    "whole-articles": {
+      "faithfulness": 0.8793650793650793,
+      "faithfulness_n_scored": 15,
+      "context_precision": 0.8124999999354167,
+      "context_precision_n_scored": 16,
+      "context_recall": 0.8125,
+      "context_recall_n_scored": 16,
+      "answer_relevancy": 0.6178590127470254,
+      "answer_relevancy_n_scored": 16,
+      "refusal_rate": 0.75,
+      "false_refusal_rate": 0.0625,
+      "article_hit_rate": 0.875
+    },
+    "no-repealed-dedupe": {
+      "faithfulness": 0.888888888888889,
+      "faithfulness_n_scored": 15,
+      "context_precision": 0.8124999999354167,
+      "context_precision_n_scored": 16,
+      "context_recall": 0.8125,
+      "context_recall_n_scored": 16,
+      "answer_relevancy": 0.7158695665519582,
+      "answer_relevancy_n_scored": 16,
+      "refusal_rate": 0.75,
+      "false_refusal_rate": 0.0625,
+      "article_hit_rate": 0.875
+    }
+  }
+}

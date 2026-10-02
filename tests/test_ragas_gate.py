@@ -85,13 +85,9 @@ def test_fails_when_out_of_corpus_questions_are_answered(tmp_path):
     assert any(f"only 1/{len(OUT_OF_CORPUS)} out-of-corpus" in f for f in out)
 
 
-def test_fails_on_old_cpu_report_format():
-    # the committed CPU-era file: a bare list with null scores
-    out = check(
-        REPO / "reports" / "ragas_results.json",
-        SUBSET,
-        REPO / "params.yaml",
-        REPO / "dvc.lock",
-        0.75,
-    )
+def test_fails_on_old_cpu_report_format(tmp_path):
+    # the CPU-era format: a bare list with null scores
+    cpu = tmp_path / "ragas_results.json"
+    cpu.write_text(json.dumps([{"faithfulness": None}]))
+    out = check(cpu, SUBSET, REPO / "params.yaml", REPO / "dvc.lock", 0.75)
     assert out and "not a GPU evaluation report" in out[0]
