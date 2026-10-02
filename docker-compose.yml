@@ -1,5 +1,9 @@
 services:
   api:
+    # `docker compose up` pulls this pre-built image (published by CI from
+    # main, vector store baked in), so a reviewer needs no DVC access.
+    # `docker compose up --build` builds it locally instead (after `dvc pull`).
+    image: ghcr.io/zeinabmahfouz/the-egyptian-civil-code-rag:latest
     build: .
     ports:
       - "8000:8000"
