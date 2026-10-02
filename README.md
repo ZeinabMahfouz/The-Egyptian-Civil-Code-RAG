@@ -334,6 +334,22 @@ committed evaluation is stale, meaning it was run against a different
 corpus or different chunking/embedding params than the repo now has.
 Current result: faithfulness 0.868, 3 of 4 declined, **PASS**.
 
+## Quantization (AWQ 4-bit)
+
+`Qwen/Qwen3-8B-AWQ` against fp16 on the same 54 questions, both judged by the
+fp16 model (`scripts/quant_compare.py`, `notebooks/kaggle_quantization.ipynb`):
+
+| | fp16 | AWQ 4-bit |
+|---|---|---|
+| Faithfulness | 0.886 | 0.888 (drop −0.002 < 0.03: **PASS**) |
+| Latency p50 / p95 | 2.81 s / 9.42 s | 1.06 s / 2.51 s |
+| Throughput, 8 concurrent users | 2.24 req/s | 4.21 req/s |
+| Weights per GPU | 7.64 GiB | 2.85 GiB |
+
+No measurable quality loss, ~2.7x lower latency, ~2.7x less weight memory,
+so AWQ is the serving model. Full table and reasoning:
+`reports/quantization.md`, `docs/decisions.md`.
+
 ## Status
 
 - [x] Data extraction: 1149/1149 articles, fully validated
@@ -365,6 +381,8 @@ Current result: faithfulness 0.868, 3 of 4 declined, **PASS**.
       `civil-code-rag-chunking@production`
 - [x] CI RAGAS gate: faithfulness >= 0.75, out-of-corpus declined, and
       fails when the evaluation is stale against the corpus or params
+- [x] AWQ 4-bit quantization: no faithfulness loss (−0.002), 2.7x faster,
+      2.7x less weight memory; logged to MLflow (`civil-code-rag-quantization`)
 - [x] 54-question evaluation set (`tests/eval/eval_questions.json`),
       stratified across substantive questions, direct article lookups,
       repealed-status checks (including individual articles inside a
