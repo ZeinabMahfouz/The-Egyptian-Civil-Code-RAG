@@ -62,7 +62,7 @@ jobs:
         run: dvc pull
 
       - name: Run tests
-        run: pytest tests/test_corpus_validation.py tests/test_api.py tests/test_reindex_batch.py tests/test_pii.py tests/test_canary_report.py tests/test_tracing.py tests/test_metrics.py tests/test_streaming.py tests/test_extract_arabic.py tests/test_gpu_eval.py tests/test_ragas_gate.py tests/test_vllm_backend.py -v
+        run: pytest tests/test_corpus_validation.py tests/test_api.py tests/test_reindex_batch.py tests/test_pii.py tests/test_canary_report.py tests/test_tracing.py tests/test_metrics.py tests/test_streaming.py tests/test_extract_arabic.py tests/test_gpu_eval.py tests/test_ragas_gate.py tests/test_vllm_backend.py tests/test_quant_compare.py -v
 
   rebuild_index:
     runs-on: ubuntu-latest
