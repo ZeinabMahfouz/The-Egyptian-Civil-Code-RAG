@@ -1,5 +1,9 @@
 # The Egyptian Civil Code RAG
 
+> **Reviewing this project?** Start with [PEER_REVIEW.md](PEER_REVIEW.md): it
+> covers how to run it in 3 commands, where the evidence for each rubric point
+> is, and the review template.
+
 An Arabic legal document RAG (Retrieval-Augmented Generation) system built
 on Egypt's Civil Code (القانون المدني المصري) -- a bilingual (Arabic/English),
 170-page, 1149-article legal text. Built as the final MLOps project for the
@@ -99,15 +103,19 @@ dvc repro     # rebuild everything from source, verifying it reproduces
 ```
 
 **Just run the Q&A API on any machine, without rebuilding anything** --
-3 commands, per the course checklist:
+3 commands, no DVC access needed (the image CI publishes from `main` has the
+vector store baked in):
 
 ```bash
-dvc pull                # fetches the pre-built vector store this Dockerfile bakes in
-docker compose up --build
+git clone https://github.com/ZeinabMahfouz/The-Egyptian-Civil-Code-RAG.git && cd The-Egyptian-Civil-Code-RAG
+docker compose up -d
 curl http://localhost:8000/health   # wait for {"status":"healthy",...}, then:
 curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" \
      -d '{"question": "What does Article 147 say?"}'
 ```
+
+To build the image yourself instead: `dvc pull` (fetches the vector store
+the Dockerfile bakes in), then `docker compose up --build`.
 
 First run downloads ~5.6GB of model weights (Qwen3-1.7B + BGE-M3) into
 a persistent Docker volume -- slow once, instant on every run after.
@@ -122,13 +130,11 @@ OAuth client, not a service account -- see the "DVC remote" entry in
 `docs/decisions.md` for why, and for the exact setup steps if you're
 reproducing this from scratch on a new machine.
 
-**Note on the generative model:** the Docker image currently runs the
-same CPU-based `transformers` backend used for local development
-(Qwen3-1.7B), not the Qwen3-8B + vLLM production target -- this
-project's development environment is CPU-only (see
-`docs/decisions.md`), and vLLM's GPU-oriented design isn't a good fit
-without one. Swapping to vLLM + GPU is a planned follow-up, not yet
-done.
+**Note on the generative model:** the Docker image runs Qwen3-1.7B on CPU
+with `transformers`, so it works on any laptop (30-90 s per answer). With a
+GPU, point it at a vLLM server instead: set `VLLM_BASE_URL` and `GEN_MODEL`
+(e.g. `Qwen/Qwen3-8B-AWQ`). That is the configuration the RAGAS and
+quantization results were measured on (Kaggle, 2x T4).
 
 ## Adding a legal document
 
