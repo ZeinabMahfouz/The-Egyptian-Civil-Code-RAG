@@ -133,3 +133,60 @@ def test_windows_file_is_disjoint_from_eval_set():
     for w in windows.values():
         assert not evalq & set(w["queries"])
         assert len(w["queries"]) >= 10
+
+
+# --- off-corpus share: the alerting signal ---
+
+
+def test_binomial_limit():
+    # 16 queries at a 5% base rate: 3 low ones happen by chance (p~4%), 4 don't (p<1%)
+    assert ed.binomial_limit(16) == 4
+    assert ed.binomial_limit(100) > ed.binomial_limit(16)
+
+
+def test_off_corpus_flags_questions_the_corpus_does_not_cover(tmp_path):
+    from qdrant_client import QdrantClient
+    from qdrant_client.models import Distance, PointStruct, VectorParams
+
+    emb = TopicEmbedder()
+    client = QdrantClient(":memory:")
+    client.create_collection("c", vectors_config=VectorParams(size=DIM, distance=Distance.COSINE))
+    articles = [f"Article {i}: the contract binds the parties" for i in range(30)]
+    client.upsert(
+        "c",
+        points=[PointStruct(id=i, vector=v.tolist()) for i, v in enumerate(emb.encode(articles))],
+    )
+    windows = tmp_path / "w.json"
+    windows.write_text(
+        json.dumps(
+            {
+                "windows": {
+                    "legal": {
+                        "queries": [f"Is contract {i} binding on both parties?" for i in range(16)]
+                    },
+                    "weather": {
+                        "queries": [f"What is the weather in city {i}?" for i in range(16)]
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    report = ed.main(
+        [
+            "--windows",
+            str(windows),
+            "--reports-dir",
+            str(tmp_path),
+            "--no-mlflow",
+            "--trials",
+            "100",
+        ],
+        embed_model=emb,
+        index=(client, "c"),
+    )
+    w = report["windows"]
+    assert not w["legal"]["off_corpus"] and w["legal"]["low_similarity_queries"] < 4
+    assert w["weather"]["off_corpus"] and w["weather"]["low_similarity_queries"] == 16
+    md = (tmp_path / "drift.md").read_text()
+    assert "## Off-corpus share (alerting signal)" in md and "| weather | 16 |" in md

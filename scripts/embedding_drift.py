@@ -1,32 +1,35 @@
-"""Query-embedding drift: are users asking what the system was built and
-evaluated for?
+"""Query drift: are users asking what the system was built and evaluated for?
 
-    python scripts/embedding_drift.py                    # BGE-M3 on CPU, ~1-2 min
-    python scripts/embedding_drift.py --windows my_queries.json
+    python scripts/embedding_drift.py        # BGE-M3 on CPU + the local index, ~1-2 min
+                                             # (stop the API first: local Qdrant is single-process)
 
-Baseline: the 54 evaluation questions (tests/eval/eval_questions.json), the
-query distribution the RAGAS scores were measured on. A "window" is a batch
-of incoming queries. For each window:
+Two signals per window (a batch of incoming queries), both with thresholds
+calibrated from data rather than picked by hand:
 
-    centroid_cosine = cos(mean embedding of the window, mean embedding of the baseline)
-    drift           = 1 - centroid_cosine
+1. Off-corpus share (the one that alerts). For each query, the cosine
+   similarity of its best match among the indexed articles: "does the Civil
+   Code have anything close to this?". The cut-off is the 5th percentile of
+   that score over the substantive evaluation questions, so about 5% of
+   normal questions fall below it by chance. A window is flagged when more of
+   its queries fall below the cut-off than a 5% rate would produce with
+   probability >= 1% (binomial test).
 
-How much drift is too much? The threshold isn't picked by hand. It's
-calibrated from the baseline itself: draw n baseline questions at random
-(n = the window size), compare their centroid with the centroid of the rest,
-repeat 1000 times. That shows how much two samples of *the same*
-distribution differ by chance. The threshold is the 99th percentile of that
-drift, so a window above it is less similar to the baseline than 99% of
-random samples of the baseline itself.
+2. Centroid drift (reported, not alerted on). 1 - cosine between the mean
+   embedding of the window and of the 54 evaluation questions, with a
+   threshold from 1000 random baseline samples of the window's size. It ranks
+   windows correctly, but it also reacts to phrasing: a third of the
+   evaluation set is templated "What does Article N say?" lookups, so a
+   window of ordinary full-sentence Civil Code questions already looks
+   "drifted". See docs/decisions.md.
 
 Outputs reports/drift.json and reports/drift.md, logs one MLflow run per
 window (experiment "civil-code-rag-drift"), and the API exports the result
-as Prometheus gauges (metrics.load_query_drift), with an alert rule in
-deploy/monitoring/prometheus/alerts.yml.
+as Prometheus gauges (metrics.load_query_drift) for the RagQueryDrift alert.
 """
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -36,6 +39,11 @@ REPO = Path(__file__).resolve().parent.parent
 BASELINE = REPO / "tests" / "eval" / "eval_questions.json"
 WINDOWS = REPO / "tests" / "eval" / "drift_windows.json"
 EXPERIMENT = "civil-code-rag-drift"
+LOW_PERCENTILE = 5  # % of normal questions expected below the corpus cut-off
+ALPHA = 0.01  # false-alarm rate of the window test
+
+
+# --- centroid drift ---------------------------------------------------------------
 
 
 def _unit(v: np.ndarray) -> np.ndarray:
@@ -86,14 +94,96 @@ def measure(baseline: np.ndarray, windows: dict, trials: int = 1000) -> dict:
     return results
 
 
+# --- off-corpus share ---------------------------------------------------------------
+
+
+def binomial_limit(n: int, p: float = LOW_PERCENTILE / 100, alpha: float = ALPHA) -> int:
+    """Smallest k with P(X >= k) <= alpha for X ~ Binomial(n, p): at least
+    this many low-similarity queries out of n is unlikely under normal traffic."""
+    for k in range(n + 1):
+        tail = sum(math.comb(n, i) * p**i * (1 - p) ** (n - i) for i in range(k, n + 1))
+        if tail <= alpha:
+            return k
+    return n + 1
+
+
+def top_corpus_scores(vectors: np.ndarray, client, collection: str) -> np.ndarray:
+    """Cosine similarity of each query's best match among the indexed articles."""
+    return np.array(
+        [
+            client.query_points(collection, query=v.tolist(), limit=1).points[0].score
+            for v in vectors
+        ]
+    )
+
+
+def measure_corpus(baseline_scores: np.ndarray, window_scores: dict) -> dict:
+    cut = float(np.percentile(baseline_scores, LOW_PERCENTILE))
+    out = {}
+    for name, scores in window_scores.items():
+        n_low = int((scores < cut).sum())
+        limit = binomial_limit(len(scores))
+        out[name] = {
+            "corpus_score_mean": float(scores.mean()),
+            "corpus_cutoff": cut,
+            "low_similarity_queries": n_low,
+            "low_similarity_limit": limit,
+            "off_corpus_share": n_low / len(scores),
+            "off_corpus": bool(n_low >= limit),
+        }
+    return out
+
+
+def open_index(params_path: Path):
+    """(client, collection) for the local index, or None if it isn't there."""
+    import yaml
+    from qdrant_client import QdrantClient
+
+    params = yaml.safe_load(params_path.read_text(encoding="utf-8"))["qdrant"]
+    path = REPO / params["storage_path"]
+    if not path.exists():
+        print(f"[warn] no index at {path} -- skipping the off-corpus signal (run dvc pull)")
+        return None
+    return QdrantClient(path=str(path)), params["collection_name"]
+
+
+# --- reporting ------------------------------------------------------------------
+
+
 def to_markdown(results: dict, model: str, n_baseline: int) -> str:
     lines = [
-        "# Query-embedding drift",
+        "# Query drift",
         "",
-        f"Baseline: {n_baseline} evaluation questions. Embeddings: {model}. "
-        "Threshold: 99th percentile of drift between random baseline samples of the same size.",
+        f"Embeddings: {model}. Baseline: the {n_baseline} evaluation questions.",
         "",
-        "| Window | Queries | Centroid cosine | Drift | Threshold | Drifted? "
+    ]
+    corpus = [r for r in results.values() if "off_corpus" in r]
+    if corpus:
+        lines += [
+            "## Off-corpus share (alerting signal)",
+            "",
+            f"Cut-off: best-match similarity to the indexed articles below "
+            f"{corpus[0]['corpus_cutoff']:.4f} (the {LOW_PERCENTILE}th percentile of the "
+            f"substantive evaluation questions). Flagged when the count reaches the "
+            f"binomial limit (false-alarm rate {ALPHA:.0%}).",
+            "",
+            "| Window | Queries | Mean best-match similarity | Below cut-off | Limit "
+            "| Off-corpus? |",
+            "|---|---|---|---|---|---|",
+        ]
+        for name, r in results.items():
+            lines.append(
+                f"| {name} | {r['n_queries']} | {r['corpus_score_mean']:.4f} | "
+                f"{r['low_similarity_queries']} | {r['low_similarity_limit']} | "
+                f"{'**YES**' if r['off_corpus'] else 'no'} |"
+            )
+        lines.append("")
+    lines += [
+        "## Centroid drift (reported, not alerted on)",
+        "",
+        "Threshold: 99th percentile of drift between random evaluation samples of the same size.",
+        "",
+        "| Window | Queries | Centroid cosine | Drift | Threshold | Above threshold? "
         "| Mean nearest-baseline similarity |",
         "|---|---|---|---|---|---|---|",
     ]
@@ -119,7 +209,11 @@ def log_mlflow(results: dict, model: str, uri: str) -> None:
             )
 
 
-def main(argv=None, embed_model=None):
+# --- entry point ------------------------------------------------------------------
+
+
+def main(argv=None, embed_model=None, index=None):
+    """index: (client, collection) to use instead of the local Qdrant index (tests)."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--windows", type=Path, default=WINDOWS)
     ap.add_argument("--embedding-model", default="BAAI/bge-m3")
@@ -127,6 +221,8 @@ def main(argv=None, embed_model=None):
     ap.add_argument("--mlflow-uri", default="sqlite:///eval_out/mlflow.db")
     ap.add_argument("--no-mlflow", action="store_true")
     ap.add_argument("--trials", type=int, default=1000)
+    ap.add_argument("--params", type=Path, default=REPO / "params.yaml")
+    ap.add_argument("--no-index", action="store_true", help="skip the off-corpus signal")
     args = ap.parse_args(argv)
 
     if embed_model is None:
@@ -137,14 +233,28 @@ def main(argv=None, embed_model=None):
     def embed(texts):
         return np.asarray(embed_model.encode(texts, normalize_embeddings=True), dtype=np.float64)
 
-    baseline_q = [
-        q["question"] for q in json.loads(BASELINE.read_text(encoding="utf-8"))["questions"]
-    ]
+    questions = json.loads(BASELINE.read_text(encoding="utf-8"))["questions"]
+    baseline_q = [q["question"] for q in questions]
     windows_q = json.loads(args.windows.read_text(encoding="utf-8"))["windows"]
     baseline = embed(baseline_q)
     windows = {name: embed(w["queries"]) for name, w in windows_q.items()}
 
     results = measure(baseline, windows, trials=args.trials)
+
+    if index is None and not args.no_index:
+        index = open_index(args.params)
+    if index is not None:
+        client, collection = index
+        # Substantive questions only: article-number lookups are answered by an
+        # exact filter, not by similarity, so their similarity says nothing.
+        substantive = [i for i, q in enumerate(questions) if q["category"] == "substantive"]
+        corpus = measure_corpus(
+            top_corpus_scores(baseline[substantive], client, collection),
+            {name: top_corpus_scores(v, client, collection) for name, v in windows.items()},
+        )
+        for name in results:
+            results[name].update(corpus[name])
+
     report = {
         "baseline": {"source": str(BASELINE.relative_to(REPO)), "n_queries": len(baseline_q)},
         "embedding_model": args.embedding_model,
