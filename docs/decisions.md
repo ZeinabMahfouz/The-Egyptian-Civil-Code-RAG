@@ -1152,3 +1152,48 @@ are built by the same function.
 questions that name an article inside a repealed range (3 of the 54: r03_en, r04_ar, r09_en). The
 committed GPU results predate the change, so for those rows they understate
 the current system slightly. They don't overstate it.
+
+## Load test: 50 users, no failures, saturated at ~5.7 requests/s
+
+**Setup.** The configuration chosen for serving: the FastAPI app (PII
+redaction, retrieval, prompt, metrics; the same code as the Docker image)
+calling Qwen3-8B-AWQ on vLLM (2x T4, tensor parallel 2). Locust ran on the
+same Kaggle machine (`load_test/locustfile.py`): users ask random questions
+from the 54-question eval set, waiting 0.5–2 s between requests. An empty
+answer counts as a failure. Run with `notebooks/kaggle_load_test.ipynb`; the
+raw Locust HTML and CSV are in `reports/`.
+
+| Users | Duration | Requests | Failures | Throughput | p50 | p95 | p99 | Max |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 2 min | 47 | 0 | 0.40 req/s | 1.2 s | 2.2 s | 2.5 s | 2.5 s |
+| **50** | 5 min | 1,692 | **0** | **5.65 req/s** | 7.0 s | **12.0 s** | 15.0 s | 18.1 s |
+
+**Reading it.** Throughput rose 14x and nothing failed, but the server is
+saturated: requests queue, so latency grows. The numbers are consistent with
+a closed system at capacity: 50 users ÷ 5.65 req/s ≈ 8.8 s per cycle, which is
+about 7.6 s average latency plus 1.25 s average think time.
+
+**Where the time goes under load.** These are the API's own Prometheus
+histograms (`reports/load_metrics.txt`), averaged over all 1,778 requests:
+
+| Stage | Mean | Share |
+|---|---|---|
+| Retrieve (embed the question + Qdrant search) | 2.45 s | 38% |
+| Generate (vLLM) | 4.02 s | 62% |
+| Total | 6.47 s | |
+
+Generation dominating is expected. **Retrieval taking 2.45 s is not:** it is
+one embedding plus a search over 2,197 points, which should take tens of
+milliseconds (not measured separately here: the histogram mixes both runs). The likely causes are that the
+local (embedded) Qdrant client and the BGE-M3 encoder run inside the API
+process and serialize across FastAPI's worker threads, and that the
+same-language swap does a filtered `scroll` per hit, which local Qdrant
+evaluates by scanning. This is the first thing to fix for more capacity:
+run Qdrant as its own server (the official `qdrant/qdrant` image), and batch
+question embeddings. That should return about a
+third of the latency without touching the GPU.
+
+**Limits.** Locust ran on the same machine as the server, so it competed for
+CPU. A single 5-minute run is one measurement, not an average. The 1-user p95
+(2.2 s) is the latency one user waits; the 50-user p95 (12 s) is the one that
+matters for capacity planning.
