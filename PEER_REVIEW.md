@@ -142,7 +142,7 @@ check it.
 | 5 | DVC: `dvc repro` reproduces | `dvc.yaml` (extract → validate → chunk → embed), `dvc.lock` | The data remote is a private Google Drive, so you can't `dvc pull`. Instead, open the latest green CI run: the **rebuild_index** job runs `dvc pull` + `dvc repro` + `dvc status` from scratch |
 | 6 | CI/CD with a quality gate | `.github/workflows/ci.yml`, **Actions** tab | lint → test → rebuild_index → build_and_push_image, plus **ragas_gate** (fails if faithfulness < 0.75, or if the evaluation is stale against the corpus or params) |
 | 7 | Production serving | BentoML: `src/egyptian_civil_code_rag/service.py`; vLLM; latency p50/p95 in `reports/quantization.md`; canary rollout in `deploy/canary/` | Locust at 50 users: `reports/locust_u50.html`, summary in `reports/load_test.md` (0 failures, p95 12.0 s) |
-| 8 | Monitoring | `reports/grafana_dashboard.png`, `deploy/monitoring/` (alert rules in `prometheus/alerts.yml`: faithfulness < 0.80), `reports/langfuse_trace.png` | Part A: `/metrics` |
+| 8 | Monitoring | `reports/grafana_dashboard.png`, `deploy/monitoring/` (alert rules in `prometheus/alerts.yml`: faithfulness < 0.80, query drift), `reports/drift.md`, `reports/langfuse_trace.png` | Part A: `/metrics` |
 | 9 | Peer review | this page | |
 | 10 | README and architecture | `README.md`, `docs/decisions.md` | Could you run it without asking? |
 
@@ -151,6 +151,8 @@ check it.
 - RAGAS faithfulness **0.896**, context precision 0.908, context recall 0.854
 - Load test, 50 concurrent users: 1,692 requests, 0 failures, 5.65 req/s,
   p95 12.0 s
+- Query drift: questions from other jurisdictions and off-topic ones flagged
+  (16 of 16 below the cut-off); new Civil Code questions not flagged
 - Out-of-corpus questions declined: 4 of 6 (the main remaining risk)
 - AWQ 4-bit vs fp16: faithfulness 0.888 vs 0.886 (no loss); latency p50
   1.06 s vs 2.81 s; weights 2.85 vs 7.64 GiB per GPU
@@ -176,8 +178,8 @@ discovering them; spend it on what I *haven't* noticed.
 - Under 50 users, retrieval takes 38% of request time (2.45 s on average);
   the likely cause (local Qdrant client and embedder serializing inside the
   API process) is in `docs/decisions.md`. Not fixed yet.
-- Embedding-drift check: in progress at the time of writing. If there is no
-  `reports/drift*` file, it wasn't finished.
+- The drift check runs on hand-written query windows that simulate drift,
+  not on logged production traffic.
 
 ---
 

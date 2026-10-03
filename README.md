@@ -371,6 +371,23 @@ takes 38% of the time, which is the first thing to fix. Reports:
 `reports/locust_u50.html`, `reports/load_test.md`; analysis in
 `docs/decisions.md`.
 
+## Query drift
+
+Are users asking what the system was evaluated on? `scripts/embedding_drift.py`
+compares batches of queries with the eval set (BGE-M3). The alerting signal is
+the share of questions with no close match among the indexed articles, with a
+cut-off and limit calibrated on the eval questions:
+
+| Window (16 questions each) | Below cut-off | Flagged |
+|---|---|---|
+| New Civil Code questions | 2 | no |
+| Other jurisdictions (Saudi labour law, Egyptian criminal/tax law) | 16 | **yes** |
+| Off topic | 16 | **yes** |
+
+Plain centroid drift was tried first and rejected for alerting: it flagged
+normal questions because it reacts to phrasing. Details in `docs/decisions.md`,
+report in `reports/drift.md`, alert `RagQueryDrift`.
+
 ## Status
 
 - [x] Data extraction: 1149/1149 articles, fully validated
@@ -402,6 +419,8 @@ takes 38% of the time, which is the first thing to fix. Reports:
       `civil-code-rag-chunking@production`
 - [x] CI RAGAS gate: faithfulness >= 0.75, out-of-corpus declined, and
       fails when the evaluation is stale against the corpus or params
+- [x] Query drift check: off-corpus share with a calibrated limit, MLflow,
+      Prometheus alert, Grafana panel
 - [x] Locust load test: 50 users, 1,692 requests, 0 failures, p95 12.0 s
 - [x] AWQ 4-bit quantization: no faithfulness loss (−0.002), 2.7x faster,
       2.7x less weight memory; logged to MLflow (`civil-code-rag-quantization`)
