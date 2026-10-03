@@ -356,6 +356,21 @@ No measurable quality loss, ~2.7x lower latency, ~2.7x less weight memory,
 so AWQ is the serving model. Full table and reasoning:
 `reports/quantization.md`, `docs/decisions.md`.
 
+## Load test (Locust, 50 users)
+
+FastAPI + Qwen3-8B-AWQ on vLLM (2x T4), questions from the eval set, 0.5–2 s
+think time (`load_test/locustfile.py`, `notebooks/kaggle_load_test.ipynb`):
+
+| Users | Requests | Failures | Throughput | p50 | p95 | p99 |
+|---|---|---|---|---|---|---|
+| 1 | 47 | 0 | 0.40 req/s | 1.2 s | 2.2 s | 2.5 s |
+| 50 | 1,692 | 0 | 5.65 req/s | 7.0 s | 12.0 s | 15.0 s |
+
+No failures. It saturates at about 5.7 requests/s; under load, retrieval
+takes 38% of the time, which is the first thing to fix. Reports:
+`reports/locust_u50.html`, `reports/load_test.md`; analysis in
+`docs/decisions.md`.
+
 ## Status
 
 - [x] Data extraction: 1149/1149 articles, fully validated
@@ -387,6 +402,7 @@ so AWQ is the serving model. Full table and reasoning:
       `civil-code-rag-chunking@production`
 - [x] CI RAGAS gate: faithfulness >= 0.75, out-of-corpus declined, and
       fails when the evaluation is stale against the corpus or params
+- [x] Locust load test: 50 users, 1,692 requests, 0 failures, p95 12.0 s
 - [x] AWQ 4-bit quantization: no faithfulness loss (−0.002), 2.7x faster,
       2.7x less weight memory; logged to MLflow (`civil-code-rag-quantization`)
 - [x] 54-question evaluation set (`tests/eval/eval_questions.json`),

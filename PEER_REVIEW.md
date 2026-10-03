@@ -141,7 +141,7 @@ check it.
 | 4 | MLflow: ≥5 runs, best model promoted | `reports/mlflow_comparison.png` (5 chunking configs and the full run), `reports/mlflow_registry.png`, `scripts/gpu_eval.py` | Registered model `civil-code-rag-chunking` v1, alias `@production`; the selection rule is in `best_of()` |
 | 5 | DVC: `dvc repro` reproduces | `dvc.yaml` (extract → validate → chunk → embed), `dvc.lock` | The data remote is a private Google Drive, so you can't `dvc pull`. Instead, open the latest green CI run: the **rebuild_index** job runs `dvc pull` + `dvc repro` + `dvc status` from scratch |
 | 6 | CI/CD with a quality gate | `.github/workflows/ci.yml`, **Actions** tab | lint → test → rebuild_index → build_and_push_image, plus **ragas_gate** (fails if faithfulness < 0.75, or if the evaluation is stale against the corpus or params) |
-| 7 | Production serving | BentoML: `src/egyptian_civil_code_rag/service.py`; vLLM; latency p50/p95 in `reports/quantization.md`; canary rollout in `deploy/canary/` | Locust report: see "Known gaps" below |
+| 7 | Production serving | BentoML: `src/egyptian_civil_code_rag/service.py`; vLLM; latency p50/p95 in `reports/quantization.md`; canary rollout in `deploy/canary/` | Locust at 50 users: `reports/locust_u50.html`, summary in `reports/load_test.md` (0 failures, p95 12.0 s) |
 | 8 | Monitoring | `reports/grafana_dashboard.png`, `deploy/monitoring/` (alert rules in `prometheus/alerts.yml`: faithfulness < 0.80), `reports/langfuse_trace.png` | Part A: `/metrics` |
 | 9 | Peer review | this page | |
 | 10 | README and architecture | `README.md`, `docs/decisions.md` | Could you run it without asking? |
@@ -149,6 +149,8 @@ check it.
 **Key results** (Qwen3-8B, 54 questions, `docs/decisions.md` has the details):
 
 - RAGAS faithfulness **0.896**, context precision 0.908, context recall 0.854
+- Load test, 50 concurrent users: 1,692 requests, 0 failures, 5.65 req/s,
+  p95 12.0 s
 - Out-of-corpus questions declined: 4 of 6 (the main remaining risk)
 - AWQ 4-bit vs fp16: faithfulness 0.888 vs 0.886 (no loss); latency p50
   1.06 s vs 2.81 s; weights 2.85 vs 7.64 GiB per GPU
@@ -171,9 +173,11 @@ discovering them; spend it on what I *haven't* noticed.
   CI proves reproducibility instead.
 - 2 of 6 out-of-corpus questions were answered instead of declined.
 - The generator and the RAGAS judge are the same model family (Qwen3-8B).
-- Locust load test (50 users) and embedding-drift check: in progress at the
-  time of writing. If `reports/` has no `locust_*` file, they weren't
-  finished.
+- Under 50 users, retrieval takes 38% of request time (2.45 s on average);
+  the likely cause (local Qdrant client and embedder serializing inside the
+  API process) is in `docs/decisions.md`. Not fixed yet.
+- Embedding-drift check: in progress at the time of writing. If there is no
+  `reports/drift*` file, it wasn't finished.
 
 ---
 
