@@ -1,0 +1,51 @@
+{
+  "baseline": {
+    "source": "tests/eval/eval_questions.json",
+    "n_queries": 54
+  },
+  "embedding_model": "BAAI/bge-m3",
+  "windows": {
+    "in_domain": {
+      "n_queries": 16,
+      "centroid_cosine": 0.8799778391382406,
+      "drift": 0.12002216086175943,
+      "threshold": 0.08976514801155883,
+      "drifted": true,
+      "nearest_baseline_similarity_mean": 0.6129760691736996,
+      "corpus_score_mean": 0.6927401079616244,
+      "corpus_cutoff": 0.6459716853608816,
+      "low_similarity_queries": 2,
+      "low_similarity_limit": 4,
+      "off_corpus_share": 0.125,
+      "off_corpus": false
+    },
+    "other_jurisdiction": {
+      "n_queries": 16,
+      "centroid_cosine": 0.7687679798404663,
+      "drift": 0.2312320201595337,
+      "threshold": 0.08976514801155883,
+      "drifted": true,
+      "nearest_baseline_similarity_mean": 0.5705029188286665,
+      "corpus_score_mean": 0.4980508933471423,
+      "corpus_cutoff": 0.6459716853608816,
+      "low_similarity_queries": 16,
+      "low_similarity_limit": 4,
+      "off_corpus_share": 1.0,
+      "off_corpus": true
+    },
+    "off_topic": {
+      "n_queries": 16,
+      "centroid_cosine": 0.7017339550568442,
+      "drift": 0.2982660449431558,
+      "threshold": 0.08976514801155883,
+      "drifted": true,
+      "nearest_baseline_similarity_mean": 0.4747379470825583,
+      "corpus_score_mean": 0.4486868920086874,
+      "corpus_cutoff": 0.6459716853608816,
+      "low_similarity_queries": 16,
+      "low_similarity_limit": 4,
+      "off_corpus_share": 1.0,
+      "off_corpus": true
+    }
+  }
+}
