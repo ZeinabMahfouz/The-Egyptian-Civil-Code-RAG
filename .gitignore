@@ -227,3 +227,4 @@ deploy/canary/logs/
 eval_out/
 gpu_eval_results.zip
 quant_results.zip
+load_test_results.zip
