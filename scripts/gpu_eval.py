@@ -113,7 +113,7 @@ def make_row(q: dict, hits, answer: str) -> dict:
     expected = set(q.get("expected_articles") or [])
     return {
         "user_input": q["question"],
-        "retrieved_contexts": [format_context(h.payload) for h in hits],
+        "retrieved_contexts": [format_context(h.payload, q["question"]) for h in hits],
         "response": answer,
         "reference": q["ground_truth"],
         "_id": q["id"],

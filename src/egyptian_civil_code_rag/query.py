@@ -33,13 +33,28 @@ def question_language(question: str) -> str:
     return "ar" if RE_ARABIC.search(question) else "en"
 
 
-def format_context(payload: dict) -> str:
+def format_context(payload: dict, question: str = "") -> str:
     """One retrieved article exactly as the generator sees it: citation,
     repeal status, text. The RAGAS judge gets the same string -- if it only
     saw the bare text, every correct "according to Article 44" would count
-    as an unsupported claim (the label lives outside the text)."""
+    as an unsupported claim (the label lives outside the text).
+
+    Repealed ranges are indexed as one chunk ("Articles 389-417"). Asked
+    "Is Article 400 still in force?", the small CPU model was shown that
+    chunk and still answered "no information" -- it didn't work out that
+    400 lies between 389 and 417. So when the question names an article
+    inside a repealed range, the context states it outright."""
     status = " (REPEALED -- no longer in force)" if payload.get("is_repealed") else ""
-    return f"[{payload['citation']}]{status}\n{payload['text']}"
+    note = ""
+    numbers = payload.get("article_numbers") or []
+    if payload.get("is_repealed") and len(numbers) > 1 and question:
+        inside = sorted(set(extract_referenced_article_numbers(question)) & set(numbers))
+        if inside:
+            listed = ", ".join(str(n) for n in inside)
+            note = (
+                f"\nNote: Article {listed} is within this range, so Article {listed} is REPEALED."
+            )
+    return f"[{payload['citation']}]{status}\n{payload['text']}{note}"
 
 
 def extract_referenced_article_numbers(question: str) -> list[int]:
@@ -173,7 +188,7 @@ class RAGQueryEngine:
         return distinct
 
     def build_prompt(self, question: str, context_hits):
-        context = "\n\n".join(format_context(hit.payload) for hit in context_hits)
+        context = "\n\n".join(format_context(hit.payload, question) for hit in context_hits)
 
         return f"""You are a legal assistant answering questions about the Egyptian Civil Code.
 Answer ONLY using the articles provided below. Every claim in your answer must be
