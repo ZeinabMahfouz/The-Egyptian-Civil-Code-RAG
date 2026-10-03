@@ -52,6 +52,13 @@ What happens:
 {"status":"healthy","documents_indexed":2197,"release":"dev"}
 ```
 
+Two lines in the startup log look like errors but are expected:
+`Langfuse client initialized without public_key` (tracing is off when no
+Langfuse server is configured) and `unauthenticated requests to the HF Hub`
+(the model download works without a token). The models then download with no
+progress output, so a few quiet minutes are normal; wait for
+`Application startup complete`.
+
 ### Ask it questions
 
 **The easiest way:** open **http://localhost:8000/docs** in a browser, then

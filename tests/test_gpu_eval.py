@@ -163,3 +163,20 @@ def isolated_mlflow(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     yield
     mlflow.set_tracking_uri(None)
+
+
+def test_question_about_article_in_repealed_range_gets_explicit_note():
+    from egyptian_civil_code_rag.query import format_context
+
+    chunk = {
+        "citation": "Egyptian Civil Code, Articles 389-417",
+        "is_repealed": True,
+        "article_numbers": list(range(389, 418)),
+        "text": "المواد من ٣٨٩ إلى ٤١٧ ملغاة",
+    }
+    ctx = format_context(chunk, "Is Article 400 still in force?")
+    assert "Article 400 is within this range, so Article 400 is REPEALED" in ctx
+    assert "Article 400 is within" in format_context(chunk, "هل المادة ٤٠٠ سارية؟")
+    # no note when the question doesn't name an article in the range, or the chunk is live
+    assert "Note:" not in format_context(chunk, "What does Article 147 say?")
+    assert "Note:" not in format_context({**chunk, "is_repealed": False}, "Article 400?")

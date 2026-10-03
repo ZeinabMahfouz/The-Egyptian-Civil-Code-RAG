@@ -1131,3 +1131,24 @@ judge, so evaluation keeps one fixed yardstick.
   plausible from the weight size, but was not measured.
 - Throughput is counted in streamed chunks, which vLLM emits at about one
   token each, so it is close to tokens/s but not exact.
+
+## Repealed ranges: state the arithmetic, don't ask the model to do it
+
+**Found during the reviewer dry run** (a fresh clone, the published image,
+CPU model Qwen3-1.7B). Asked "Is Article 400 still in force?", the system
+retrieved the right chunk, `Articles 389-417 (REPEALED)`, and still answered
+"the provided articles do not contain information about Article 400". The
+small model didn't infer that 400 lies between 389 and 417. Qwen3-8B on
+Kaggle got the same question right, so the eval didn't catch it; the image
+reviewers run uses the small model.
+
+**Fix:** `format_context` now adds an explicit line when the question names an
+article inside a repealed range: "Note: Article 400 is within this range, so
+Article 400 is REPEALED." This is deterministic code, not something we hope
+the model works out. The RAGAS judge sees the same line, because the contexts
+are built by the same function.
+
+**Effect on the recorded evaluation:** this changes the prompt only for
+questions that name an article inside a repealed range (3 of the 54: r03_en, r04_ar, r09_en). The
+committed GPU results predate the change, so for those rows they understate
+the current system slightly. They don't overstate it.
