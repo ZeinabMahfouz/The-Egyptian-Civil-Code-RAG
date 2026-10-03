@@ -19,6 +19,16 @@ from egyptian_civil_code_rag import metrics  # noqa: E402
 DIM = 32
 
 
+@pytest.fixture(autouse=True)
+def never_open_the_real_index(monkeypatch):
+    # In CI (after dvc pull) and on a dev machine the real 1024-dim index
+    # exists; these tests use 32-dim fake vectors and must never reach it.
+    def fail(_params):
+        raise AssertionError("test reached the real Qdrant index -- pass index= or --no-index")
+
+    monkeypatch.setattr(ed, "open_index", fail)
+
+
 def cluster(center, n, spread, seed):
     rng = np.random.default_rng(seed)
     return center + spread * rng.standard_normal((n, DIM))
@@ -95,6 +105,7 @@ def test_end_to_end_writes_reports(tmp_path):
             "--reports-dir",
             str(tmp_path),
             "--no-mlflow",
+            "--no-index",
             "--trials",
             "200",
         ],
