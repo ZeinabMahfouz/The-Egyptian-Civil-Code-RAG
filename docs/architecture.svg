@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 840" width="1400" height="840" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#57606a"/></marker></defs>
+<rect width="1400" height="840" fill="#ffffff"/>
+<text x="20" y="30" font-size="18" font-weight="600" fill="#1f2328">Egyptian Civil Code RAG — architecture</text>
+<rect x="12" y="50" width="1376" height="140" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+<rect x="12" y="50" width="6" height="140" rx="3" fill="#0969da"/>
+<text x="30" y="78" font-size="14" font-weight="600" fill="#1f2328">① Data pipeline</text>
+<text x="30" y="97" font-size="11.5" fill="#59636e">DVC · dvc repro</text>
+<rect x="12" y="205" width="1376" height="140" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+<rect x="12" y="205" width="6" height="140" rx="3" fill="#1a7f37"/>
+<text x="30" y="233" font-size="14" font-weight="600" fill="#1f2328">② Serving</text>
+<text x="30" y="252" font-size="11.5" fill="#59636e">Docker image / Kaggle GPU</text>
+<rect x="12" y="370" width="1376" height="140" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+<rect x="12" y="370" width="6" height="140" rx="3" fill="#8250df"/>
+<text x="30" y="398" font-size="14" font-weight="600" fill="#1f2328">③ Observability</text>
+<rect x="12" y="515" width="1376" height="140" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+<rect x="12" y="515" width="6" height="140" rx="3" fill="#9a6700"/>
+<text x="30" y="543" font-size="14" font-weight="600" fill="#1f2328">④ Evaluation</text>
+<text x="30" y="562" font-size="11.5" fill="#59636e">Kaggle 2× T4 · drift on CPU</text>
+<rect x="12" y="675" width="1376" height="140" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+<rect x="12" y="675" width="6" height="140" rx="3" fill="#cf222e"/>
+<text x="30" y="703" font-size="14" font-weight="600" fill="#1f2328">⑤ CI/CD</text>
+<text x="30" y="722" font-size="11.5" fill="#59636e">GitHub Actions</text>
+<rect x="170" y="95" width="170" height="62" rx="6" fill="#fff" stroke="#0969da" stroke-width="1.6"/>
+<text x="255.0" y="122.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">Civil Code PDF</text>
+<text x="255.0" y="138.0" text-anchor="middle" font-size="11.5" fill="#59636e">Arabic + English, 170 pp</text>
+<rect x="365" y="95" width="170" height="62" rx="6" fill="#fff" stroke="#0969da" stroke-width="1.6"/>
+<text x="450.0" y="122.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">extract_corpus</text>
+<text x="450.0" y="138.0" text-anchor="middle" font-size="11.5" fill="#59636e">1149 articles · JSON</text>
+<rect x="560" y="95" width="170" height="62" rx="6" fill="#fff" stroke="#0969da" stroke-width="1.6"/>
+<text x="645.0" y="122.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">validate_corpus</text>
+<text x="645.0" y="138.0" text-anchor="middle" font-size="11.5" fill="#59636e">pytest gate</text>
+<rect x="755" y="95" width="170" height="62" rx="6" fill="#fff" stroke="#0969da" stroke-width="1.6"/>
+<text x="840.0" y="122.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">chunk_corpus</text>
+<text x="840.0" y="138.0" text-anchor="middle" font-size="11.5" fill="#59636e">1102 chunks</text>
+<rect x="950" y="95" width="170" height="62" rx="6" fill="#fff" stroke="#0969da" stroke-width="1.6"/>
+<text x="1035.0" y="122.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">embed_and_index</text>
+<text x="1035.0" y="138.0" text-anchor="middle" font-size="11.5" fill="#59636e">BGE-M3 · + other laws</text>
+<path d="M1180,99 a95.0,8 0 0,0 190,0 a95.0,8 0 0,0 -190,0 v54 a95.0,8 0 0,0 190,0 v-54" fill="#fff" stroke="#0969da" stroke-width="1.6"/>
+<text x="1275.0" y="122.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">Qdrant index</text>
+<text x="1275.0" y="138.0" text-anchor="middle" font-size="11.5" fill="#59636e">2197 points</text>
+<path d="M340,126.0 L363,126.0" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<path d="M535,126.0 L558,126.0" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<path d="M730,126.0 L753,126.0" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<path d="M925,126.0 L948,126.0" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<path d="M1120,126.0 L1178,126.0" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<rect x="170" y="280" width="120" height="52" rx="26.0" fill="#fff" stroke="#1a7f37" stroke-width="1.6"/>
+<text x="230.0" y="302.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">User</text>
+<text x="230.0" y="318.0" text-anchor="middle" font-size="11.5" fill="#59636e">question</text>
+<rect x="345" y="275" width="175" height="62" rx="6" fill="#fff" stroke="#1a7f37" stroke-width="1.6"/>
+<text x="432.5" y="302.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">nginx</text>
+<text x="432.5" y="318.0" text-anchor="middle" font-size="11.5" fill="#59636e">canary split · rollback</text>
+<rect x="575" y="269" width="290" height="74" rx="6" fill="#fff" stroke="#1a7f37" stroke-width="1.6"/>
+<text x="720.0" y="294.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">FastAPI / BentoML</text>
+<text x="720.0" y="310.0" text-anchor="middle" font-size="11.5" fill="#59636e">/ask · /ask/stream · /health</text>
+<text x="720.0" y="326.0" text-anchor="middle" font-size="11.5" fill="#59636e">PII redaction in + out · citations</text>
+<rect x="1180" y="275" width="190" height="62" rx="6" fill="#fff" stroke="#1a7f37" stroke-width="1.6"/>
+<text x="1275.0" y="302.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">vLLM</text>
+<text x="1275.0" y="318.0" text-anchor="middle" font-size="11.5" fill="#59636e">Qwen3-8B-AWQ · 2× T4</text>
+<path d="M290,306 L343,306" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<path d="M520,306 L573,306" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<path d="M865,306 L1178,306" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<rect x="910.6" y="288" width="218.8" height="15" fill="#f6f8fa"/>
+<text x="1020" y="299" text-anchor="middle" font-size="11" fill="#57606a">prompt with the retrieved articles</text>
+<path d="M720,269 L720,222 L1275,222 L1275,161" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<rect x="754.7" y="215" width="460.6" height="15" fill="#f6f8fa"/>
+<text x="985" y="226" text-anchor="middle" font-size="11" fill="#57606a">retrieve: exact article lookup, else semantic top-3 (question's language)</text>
+<rect x="420" y="430" width="190" height="62" rx="6" fill="#fff" stroke="#8250df" stroke-width="1.6"/>
+<text x="515.0" y="457.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">Langfuse</text>
+<text x="515.0" y="473.0" text-anchor="middle" font-size="11.5" fill="#59636e">one trace per request</text>
+<rect x="655" y="430" width="190" height="62" rx="6" fill="#fff" stroke="#8250df" stroke-width="1.6"/>
+<text x="750.0" y="457.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">Prometheus</text>
+<text x="750.0" y="473.0" text-anchor="middle" font-size="11.5" fill="#59636e">/metrics · alert rules</text>
+<rect x="890" y="430" width="190" height="62" rx="6" fill="#fff" stroke="#8250df" stroke-width="1.6"/>
+<text x="985.0" y="457.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">Grafana</text>
+<text x="985.0" y="473.0" text-anchor="middle" font-size="11.5" fill="#59636e">latency · tokens · cost/hour</text>
+<path d="M640,343 L530,428" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<path d="M745,343 L750,428" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<path d="M845,461 L888,461" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<text x="1110" y="458" font-size="11.5" fill="#59636e">Alerts: faithfulness &lt; 0.80, query drift,</text>
+<text x="1110" y="474" font-size="11.5" fill="#59636e">error rate, p95 latency, API down</text>
+<rect x="170" y="572" width="190" height="62" rx="6" fill="#fff" stroke="#9a6700" stroke-width="1.6"/>
+<text x="265.0" y="599.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">RAGAS</text>
+<text x="265.0" y="615.0" text-anchor="middle" font-size="11.5" fill="#59636e">54 questions · judge Qwen3-8B</text>
+<rect x="400" y="572" width="190" height="62" rx="6" fill="#fff" stroke="#9a6700" stroke-width="1.6"/>
+<text x="495.0" y="599.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">Chunking sweep</text>
+<text x="495.0" y="615.0" text-anchor="middle" font-size="11.5" fill="#59636e">5 configs</text>
+<rect x="630" y="572" width="210" height="62" rx="6" fill="#fff" stroke="#9a6700" stroke-width="1.6"/>
+<text x="735.0" y="599.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">MLflow</text>
+<text x="735.0" y="615.0" text-anchor="middle" font-size="11.5" fill="#59636e">runs · registry @production</text>
+<rect x="880" y="572" width="150" height="62" rx="6" fill="#fff" stroke="#9a6700" stroke-width="1.6"/>
+<text x="955.0" y="599.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">AWQ vs fp16</text>
+<text x="955.0" y="615.0" text-anchor="middle" font-size="11.5" fill="#59636e">quality · latency</text>
+<rect x="1060" y="572" width="140" height="62" rx="6" fill="#fff" stroke="#9a6700" stroke-width="1.6"/>
+<text x="1130.0" y="599.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">Locust</text>
+<text x="1130.0" y="615.0" text-anchor="middle" font-size="11.5" fill="#59636e">50 users → ②</text>
+<rect x="1225" y="572" width="145" height="62" rx="6" fill="#fff" stroke="#9a6700" stroke-width="1.6"/>
+<text x="1297.5" y="599.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">Query drift</text>
+<text x="1297.5" y="615.0" text-anchor="middle" font-size="11.5" fill="#59636e">off-corpus share → ③</text>
+<path d="M360,603 L398,603" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<path d="M590,603 L628,603" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<path d="M880,603 L842,603" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<rect x="170" y="735" width="120" height="62" rx="6" fill="#fff" stroke="#cf222e" stroke-width="1.6"/>
+<text x="230.0" y="762.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">lint</text>
+<text x="230.0" y="778.0" text-anchor="middle" font-size="11.5" fill="#59636e">ruff</text>
+<rect x="330" y="735" width="140" height="62" rx="6" fill="#fff" stroke="#cf222e" stroke-width="1.6"/>
+<text x="400.0" y="762.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">test</text>
+<text x="400.0" y="778.0" text-anchor="middle" font-size="11.5" fill="#59636e">pytest</text>
+<rect x="510" y="735" width="170" height="62" rx="6" fill="#fff" stroke="#cf222e" stroke-width="1.6"/>
+<text x="595.0" y="762.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">rebuild_index</text>
+<text x="595.0" y="778.0" text-anchor="middle" font-size="11.5" fill="#59636e">dvc pull + dvc repro</text>
+<rect x="720" y="735" width="200" height="62" rx="6" fill="#fff" stroke="#cf222e" stroke-width="1.6"/>
+<text x="820.0" y="762.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">build &amp; push image</text>
+<text x="820.0" y="778.0" text-anchor="middle" font-size="11.5" fill="#59636e">GHCR :latest → ②</text>
+<rect x="990" y="735" width="270" height="62" rx="6" fill="#fff" stroke="#cf222e" stroke-width="1.6"/>
+<text x="1125.0" y="754.0" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2328">ragas_gate</text>
+<text x="1125.0" y="770.0" text-anchor="middle" font-size="11.5" fill="#59636e">faithfulness ≥ 0.75 on the CI subset</text>
+<text x="1125.0" y="786.0" text-anchor="middle" font-size="11.5" fill="#59636e">fails if eval is stale vs corpus/params</text>
+<path d="M290,766 L328,766" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<path d="M470,766 L508,766" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<path d="M680,766 L718,766" fill="none" stroke="#57606a" stroke-width="1.4"  marker-end="url(#ar)"/>
+<path d="M265,634 L265,705 L1125,705 L1125,733" fill="none" stroke="#57606a" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+<rect x="615.4" y="698" width="169.20000000000002" height="15" fill="#f6f8fa"/>
+<text x="700" y="709" text-anchor="middle" font-size="11" fill="#57606a">reports/ragas_results.json</text>
+</svg>

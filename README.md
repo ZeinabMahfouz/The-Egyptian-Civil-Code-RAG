@@ -1,15 +1,90 @@
 # The Egyptian Civil Code RAG
 
-> **Reviewing this project?** Start with [PEER_REVIEW.md](PEER_REVIEW.md): it
-> covers how to run it in 3 commands, where the evidence for each rubric point
-> is, and the review template.
+Question answering over Egypt's Civil Code (القانون المدني المصري, 1149
+articles, Arabic and English) for a setting where a wrong legal answer is
+unacceptable: every answer comes **only** from retrieved articles, **cites
+them**, says when an article has been **repealed**, and **declines** when
+the code doesn't cover the question. Built as the final project of the ITI
+MLOps course.
 
-An Arabic legal document RAG (Retrieval-Augmented Generation) system built
-on Egypt's Civil Code (القانون المدني المصري) -- a bilingual (Arabic/English),
-170-page, 1149-article legal text. Built as the final MLOps project for the
-ITI MLOps course.
+> **Reviewing this project?** Start with [PEER_REVIEW.md](PEER_REVIEW.md): how
+> to run it in 3 commands, test questions with expected answers, where the
+> evidence for each rubric point is, and the review template.
 
-## What this is, concretely
+## Results at a glance
+
+| What | Result | Details |
+|---|---|---|
+| Answer quality (RAGAS, 54 questions, Qwen3-8B) | faithfulness **0.896**, context precision 0.908, recall 0.854 | [GPU evaluation](#gpu-evaluation-kaggle-vllm-ragas-mlflow) |
+| Out-of-scope questions declined | 4 of 6 | `docs/decisions.md` |
+| AWQ 4-bit vs fp16 | no quality loss (−0.002), **2.7× faster**, 2.7× less memory | [Quantization](#quantization-awq-4-bit) |
+| Load, 50 concurrent users | 1,692 requests, **0 failures**, p95 12.0 s | [Load test](#load-test-locust-50-users) |
+| Query drift | other-jurisdiction and off-topic questions flagged, normal ones not | [Query drift](#query-drift) |
+| CI quality gate | faithfulness 0.868 ≥ 0.75 on the CI subset: **PASS** | [CI gate](#gpu-evaluation-kaggle-vllm-ragas-mlflow) |
+
+Negative results are reported too: the first GPU evaluation scored 0.57 and
+led to a real data bug; plain centroid drift was rejected because it flagged
+normal questions. Both are in `docs/decisions.md`.
+
+## Quick start (3 commands)
+
+Needs Docker with about 8 GB of RAM, no GPU and no accounts:
+
+```bash
+git clone https://github.com/ZeinabMahfouz/The-Egyptian-Civil-Code-RAG.git && cd The-Egyptian-Civil-Code-RAG
+docker compose up -d
+curl http://localhost:8000/health        # healthy once the models have downloaded (first run: 5-15 min)
+```
+
+Then ask a question, or open http://localhost:8000/docs:
+
+```bash
+curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" \
+     -d '{"question": "What does Article 147 say?"}'
+```
+
+The image is published by CI from `main` with the vector index baked in, so
+no DVC access is needed. It runs Qwen3-1.7B on CPU (30-90 s per answer); the
+evaluated configuration is Qwen3-8B on vLLM (see "What runs where" in
+[PEER_REVIEW.md](PEER_REVIEW.md)).
+
+## Architecture
+
+![Architecture](docs/architecture.svg)
+
+**How one question is answered** (`src/egyptian_civil_code_rag/`):
+
+1. `pii.py` redacts Egyptian national IDs, phone numbers, IBANs, cards and
+   emails from the question, before anything is logged or traced.
+2. `query.py` retrieves: if the question names an article ("Article 147",
+   "المادة ١٤٧"), an exact lookup; otherwise semantic search with BGE-M3 in
+   Qdrant, deduplicated to the top 3 articles, in the question's language.
+3. The prompt lists each article with its citation and repeal status, and
+   states explicitly when a named article falls inside a repealed range.
+4. The model (vLLM, or the CPU fallback) answers only from those articles.
+5. The answer is redacted again, and the response carries `sources`
+   (citations) and `pii_redacted`. Every step is a Langfuse span and a
+   Prometheus metric (`pipeline.py`).
+
+## Repository map
+
+```
+src/egyptian_civil_code_rag/   the package (pip install -e .): api.py, service.py (BentoML),
+                               pipeline.py, query.py, backends.py (vLLM / CPU), pii.py,
+                               metrics.py, refusal.py
+scripts/                       data pipeline (extract, chunk, embed, re-index) and
+                               evaluation (gpu_eval, quant_compare, embedding_drift, ragas_gate)
+tests/                         pytest suite; tests/eval/ holds the 54 evaluation questions
+data/                          DVC-tracked: raw PDF, interim JSON, Qdrant index; documents/
+notebooks/                     Kaggle GPU notebooks: evaluation, quantization, load test
+load_test/                     Locust load test
+deploy/                        canary rollout (nginx), monitoring (Prometheus + Grafana)
+reports/                       results: RAGAS, MLflow screenshots, quantization, Locust, drift
+docs/decisions.md              every design decision, failure and result, with numbers
+dvc.yaml · params.yaml         pipeline stages and parameters
+```
+
+## Data pipeline
 
 A reproducible pipeline that takes the raw bilingual PDF and produces a
 validated, citable, retrieval-ready corpus:
@@ -47,7 +122,7 @@ data/interim/chunks.json   (1102 chunks)
 Every stage is a `dvc.yaml` stage. `dvc repro` rebuilds the entire corpus
 from the raw PDF deterministically -- no manual steps, no hidden state.
 
-## Why this was harder than "run pdftotext and parse regex"
+### Why extraction was hard
 
 The source PDF's Arabic and English columns are laid out side-by-side
 per physical line, not as separate blocks -- naive text extraction
@@ -61,38 +136,12 @@ line, a genuinely empty table cell for one article's Arabic text). Each
 of these was diagnosed from real extracted data before being fixed --
 see `diagnostics/README.md` for the full trail.
 
-## Stack
-
-Python, pdfplumber, BGE-M3, Qdrant, Qwen3, transformers (dev) / vLLM
-(serving), RAGAS, Langfuse, BentoML, MLflow, DVC, Docker, GitHub Actions.
-
-## Project structure
-
-```
-data/
-  raw/            source PDF, DVC-tracked
-  interim/        pipeline intermediates (civil_code.json, chunks.json)
-  processed/      pipeline outputs -- Qdrant vector index (data/processed/qdrant_storage)
-  documents/      additional legal documents indexed alongside the Civil Code
-scripts/          pipeline code only (extract_corpus.py, chunk_corpus.py,
-                  embed_and_index.py, reindex_batch.py, documents.py,
-                  topic_overrides.json, manual_patches.json)
-diagnostics/      one-off debugging/analysis scripts, not part of the
-                  pipeline -- documents how failures were found and fixed
-tests/            pytest validation suite
-notebooks/        exploratory work
-src/              installable package (pip install -e .) -- RAG query engine
-                  (egyptian_civil_code_rag/query.py: retrieval, dedup, citation)
-dvc.yaml          pipeline stage definitions
-params.yaml       tunable pipeline parameters (chunking thresholds, etc.)
-```
-
 ## Reproducing this
 
 **Full pipeline, from source (rebuilds extraction -> chunking -> embedding -> index):**
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/ZeinabMahfouz/The-Egyptian-Civil-Code-RAG.git
 cd The-Egyptian-Civil-Code-RAG
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
@@ -102,27 +151,8 @@ dvc pull      # fetch the DVC-tracked raw PDF and pipeline outputs
 dvc repro     # rebuild everything from source, verifying it reproduces
 ```
 
-**Just run the Q&A API on any machine, without rebuilding anything** --
-3 commands, no DVC access needed (the image CI publishes from `main` has the
-vector store baked in):
-
-```bash
-git clone https://github.com/ZeinabMahfouz/The-Egyptian-Civil-Code-RAG.git && cd The-Egyptian-Civil-Code-RAG
-docker compose up -d
-curl http://localhost:8000/health   # wait for {"status":"healthy",...}, then:
-curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" \
-     -d '{"question": "What does Article 147 say?"}'
-```
-
-To build the image yourself instead: `dvc pull` (fetches the vector store
-the Dockerfile bakes in), then `docker compose up --build`.
-
-First run downloads ~5.6GB of model weights (Qwen3-1.7B + BGE-M3) into
-a persistent Docker volume -- slow once, instant on every run after.
-The vector store itself (your corpus, already embedded) is baked into
-the image at build time, so no DVC access is needed once the image
-exists; `dvc pull` is only how you get that data onto disk *before*
-`docker build` runs.
+**Build the image yourself** (instead of pulling it): `dvc pull` fetches the
+vector store the Dockerfile bakes in, then `docker compose up --build`.
 
 Configure your own DVC remote first if you're not pulling from the
 project's existing one. The remote is Google Drive via a personal
@@ -130,11 +160,9 @@ OAuth client, not a service account -- see the "DVC remote" entry in
 `docs/decisions.md` for why, and for the exact setup steps if you're
 reproducing this from scratch on a new machine.
 
-**Note on the generative model:** the Docker image runs Qwen3-1.7B on CPU
-with `transformers`, so it works on any laptop (30-90 s per answer). With a
-GPU, point it at a vLLM server instead: set `VLLM_BASE_URL` and `GEN_MODEL`
-(e.g. `Qwen/Qwen3-8B-AWQ`). That is the configuration the RAGAS and
-quantization results were measured on (Kaggle, 2x T4).
+**Generative model:** the Docker image runs Qwen3-1.7B on CPU with
+`transformers`. With a GPU, point the same app at a vLLM server: set
+`VLLM_BASE_URL` and `GEN_MODEL` (e.g. `Qwen/Qwen3-8B-AWQ`).
 
 ## Adding a legal document
 
@@ -191,7 +219,6 @@ error gate.
 
 ```bash
 cp deploy/canary/.env.example deploy/canary/.env      # fill in the two SHAs
-docker login ghcr.io                                   # GHCR images are private by default
 docker compose -f deploy/canary/docker-compose.canary.yml --env-file deploy/canary/.env up -d
 # ...send traffic to http://localhost:8080 ...
 python deploy/canary/canary_report.py deploy/canary/logs/canary_access.log
@@ -272,8 +299,9 @@ uvicorn egyptian_civil_code_rag.api:app --port 8000
 
 The FastAPI app exposes Prometheus metrics at `GET /metrics`: request count
 by status, latency per stage (total / retrieve / generate), LLM tokens in and
-out, PII redactions by entity type, best-chunk retrieval similarity, and the
-latest RAGAS faithfulness. `deploy/monitoring/` runs Prometheus and a
+out, PII redactions by entity type, best-chunk retrieval similarity, the
+latest RAGAS faithfulness, and the latest query-drift check.
+`deploy/monitoring/` runs Prometheus and a
 pre-provisioned Grafana dashboard against it:
 
 ```bash
@@ -297,6 +325,7 @@ per-token bill. Set it to a hosted-API equivalent or to your GPU cost per
 | `RagHighErrorRate` | > 5% of `/ask` requests failing for 5 min |
 | `RagSlowP95` | p95 latency > 120 s for 5 min (CPU backend; tighten for vLLM) |
 | `RagApiDown` | `/metrics` unreachable for 1 min |
+| `RagQueryDrift` | a query window has too many questions with no close match among the indexed articles (see Query drift) |
 
 The alerts fire in Prometheus (`/alerts`). Sending them to email or Slack would
 add Alertmanager, which is not set up here.
@@ -388,70 +417,17 @@ Plain centroid drift was tried first and rejected for alerting: it flagged
 normal questions because it reacts to phrasing. Details in `docs/decisions.md`,
 report in `reports/drift.md`, alert `RagQueryDrift`.
 
-## Status
+## Changelog
 
-- [x] Data extraction: 1149/1149 articles, fully validated
-- [x] Corpus validation: automated pytest gate, wired into DVC
-- [x] Chunking: article-level, paragraph-split for long articles,
-      repealed-range deduplication -- 1102 chunks
-- [x] Embedding model selection: BGE-M3 (see docs/decisions.md)
-- [x] Vector database: Qdrant, 1149 articles -> 2195 indexed points
-- [x] Query engine (`src/egyptian_civil_code_rag/query.py`): retrieval +
-      dedup + citation-only sources, validated end-to-end on real
-      queries (force-majeure article, repealed-range status check)
-- [x] FastAPI `/ask` + `/health` endpoints (`src/egyptian_civil_code_rag/api.py`):
-      Pydantic-validated request (empty/whitespace/missing question -> 422),
-      testable via injected fake engine with no model loading (tests/test_api.py)
-- [x] Docker: built, verified live (retrieval, generation, citation,
-      the exact-article-lookup fix -- all confirmed through the real
-      running container, not just unit tests)
-- [x] GitHub Actions CI: `lint` -> `test` -> `rebuild_index` (full
-      `dvc repro` from source) -> `build_and_push_image` (to GHCR),
-      all real and passing -- DVC remote is Google Drive (personal
-      OAuth, not a service account -- see docs/decisions.md), CI
-      authenticates via three repo secrets reconstructing the same
-      local credential setup
-- [x] Generative model: Qwen3-8B via vLLM on Kaggle (2x T4); the API and
-      BentoML use it when `VLLM_BASE_URL` is set, Qwen3-1.7B on CPU otherwise
-- [x] RAGAS evaluation on GPU: 54 questions, faithfulness 0.896, judged by
-      Qwen3-8B (the CPU attempt and why it failed are in docs/decisions.md)
-- [x] MLflow: 5-config chunking sweep + full run, best config registered as
-      `civil-code-rag-chunking@production`
-- [x] CI RAGAS gate: faithfulness >= 0.75, out-of-corpus declined, and
-      fails when the evaluation is stale against the corpus or params
-- [x] Query drift check: off-corpus share with a calibrated limit, MLflow,
-      Prometheus alert, Grafana panel
-- [x] Locust load test: 50 users, 1,692 requests, 0 failures, p95 12.0 s
-- [x] AWQ 4-bit quantization: no faithfulness loss (−0.002), 2.7x faster,
-      2.7x less weight memory; logged to MLflow (`civil-code-rag-quantization`)
-- [x] 54-question evaluation set (`tests/eval/eval_questions.json`),
-      stratified across substantive questions, direct article lookups,
-      repealed-status checks (including individual articles inside a
-      repealed range, not just the range itself), and out-of-corpus
-      edge cases
-- [x] Batch re-indexing (`scripts/reindex_batch.py`): adds or updates a
-      document in the live index without re-embedding the Civil Code;
-      `dvc repro` rebuilds the same result from `data/documents/`. See
-      docs/decisions.md for the ID-collision and stale-chunk issues it
-      had to handle
-- [x] PII guardrails on `/ask` (`src/egyptian_civil_code_rag/pii.py`):
-      Egyptian national ID / mobile / IBAN / card / email, Arabic-Indic
-      digits, redacted in both the question and the answer; response lists
-      `pii_redacted`. See docs/decisions.md
-- [x] Canary rollout (`deploy/canary/`): nginx weighted split between two
-      CI-built images, rollout stages + measurable promotion gates
-      (`canary_report.py`), rollback by config -- see "Canary rollout" above
-- [ ] MLflow experiment tracking (chunking/embedding parameter sweeps)
-- [x] BentoML serving
-- [x] Langfuse tracing (self-hosted): every `/ask` creates a trace with
-      spans for PII check, retrieval, generation (with token usage) and
-      output PII check; raw PII never enters a trace. See docs/decisions.md
-- [x] Prometheus + Grafana: `/metrics` (requests, stage latency, tokens,
-      PII, retrieval similarity, RAGAS faithfulness), provisioned dashboard
-      with p95 latency and cost/hour, alert rules incl. faithfulness < 0.80
-- [x] Arabic extraction fix: lam-alef ligatures (لا) were extracted
-      flipped (ال) in ~5,000 places; now reversed per glyph, with a DVC
-      validation gate. See docs/decisions.md
-- [x] Streaming: `POST /ask/stream` (FastAPI, SSE) and `ask_stream`
-      (BentoML); PII-safe incremental redaction; traced and measured
-      (time-to-first-chunk metric) like `/ask`
+Built incrementally; each stage was a set of reviewed pull requests with CI
+green. The full reasoning, including what didn't work, is in
+`docs/decisions.md`.
+
+| Stage | What was added |
+|---|---|
+| 1 · Data and retrieval | PDF → 1149 validated articles (bilingual column splitting, repealed ranges); article-level chunking; BGE-M3 + Qdrant; query engine with exact article lookup and citation-only sources; FastAPI `/ask` + `/health` with Pydantic; Docker |
+| 2 · MLOps foundation | DVC pipeline with a Google Drive remote; GitHub Actions (lint → test → `dvc repro` → image to GHCR); 54-question evaluation set; first RAGAS attempt on CPU (failed, documented) |
+| 3 · Serving | Batch re-indexing of new laws; PII redaction (Egyptian ID, phone, IBAN, card, email) in questions and answers; canary rollout with nginx and promotion gates; BentoML service |
+| 4 · Observability | Langfuse tracing (no raw PII in traces); Prometheus metrics, Grafana dashboard, alert rules; streaming (`/ask/stream`) with PII-safe incremental redaction; Arabic lam-alef extraction fix |
+| 5 · GPU evaluation and optimization | vLLM + Qwen3-8B on Kaggle; RAGAS on 54 questions; MLflow 5-config sweep and registry; CI RAGAS gate with staleness check; evaluation fixes (repeal-flag data bug, same-language retrieval, judge context, refusal scoring); AWQ 4-bit; Locust at 50 users; query-drift check |
+| 6 · Review readiness | Public image, 3-command setup without DVC, peer review guide and issue template, repealed-range fix found in the reviewer dry run, architecture diagram |

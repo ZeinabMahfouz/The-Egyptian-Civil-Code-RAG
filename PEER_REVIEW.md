@@ -144,7 +144,7 @@ check it.
 | 7 | Production serving | BentoML: `src/egyptian_civil_code_rag/service.py`; vLLM; latency p50/p95 in `reports/quantization.md`; canary rollout in `deploy/canary/` | Locust at 50 users: `reports/locust_u50.html`, summary in `reports/load_test.md` (0 failures, p95 12.0 s) |
 | 8 | Monitoring | `reports/grafana_dashboard.png`, `deploy/monitoring/` (alert rules in `prometheus/alerts.yml`: faithfulness < 0.80, query drift), `reports/drift.md`, `reports/langfuse_trace.png` | Part A: `/metrics` |
 | 9 | Peer review | this page | |
-| 10 | README and architecture | `README.md`, `docs/decisions.md` | Could you run it without asking? |
+| 10 | README and architecture | `README.md` (results, quick start, architecture diagram `docs/architecture.svg`, changelog), `docs/decisions.md` | Could you run it without asking? |
 
 **Key results** (Qwen3-8B, 54 questions, `docs/decisions.md` has the details):
 
