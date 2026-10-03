@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, field_validator
 
-from egyptian_civil_code_rag.metrics import load_ragas_faithfulness
+from egyptian_civil_code_rag.metrics import load_query_drift, load_ragas_faithfulness
 from egyptian_civil_code_rag.pii import PIIGuard
 from egyptian_civil_code_rag.pipeline import TracedPipeline, make_langfuse
 from egyptian_civil_code_rag.query import RAGQueryEngine
@@ -57,6 +57,7 @@ def create_app(
     pii_guard = pii_guard or PIIGuard()
     langfuse = langfuse or make_langfuse()
     load_ragas_faithfulness()  # sets the faithfulness gauge only if real scores exist
+    load_query_drift()  # drift gauges from the latest batch drift report, if any
     if engine is not None:
         app = FastAPI(title="Egyptian Civil Code RAG")
         app.state.engine = engine

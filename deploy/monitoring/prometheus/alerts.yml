@@ -17,6 +17,20 @@ groups:
             assistant this means unsupported claims -- check the latest
             RAGAS run in MLflow before promoting any release.
 
+      # Batch drift check (scripts/embedding_drift.py). Fires per query
+      # window whose drift exceeds the threshold calibrated for its size:
+      # users are asking about something the system wasn't evaluated on.
+      - alert: RagQueryDrift
+        expr: rag_query_embedding_drift > on(window) rag_query_embedding_drift_threshold
+        labels:
+          severity: warning
+        annotations:
+          summary: "Query window {{ $labels.window }} drifted from the evaluation questions"
+          description: >-
+            The window's embedding centroid is further from the evaluation
+            set than 99% of random evaluation samples. RAGAS scores may not
+            describe this traffic: extend the eval set before trusting them.
+
   - name: rag-serving
     rules:
       - alert: RagApiDown

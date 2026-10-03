@@ -1,0 +1,68 @@
+{
+  "description": "Query windows for scripts/embedding_drift.py. None of these questions are in the evaluation set. 'in_domain' is the traffic the system is built for; the other two simulate the drift the course names for this track: legal language from another jurisdiction, and requests that are not about law at all.",
+  "windows": {
+    "in_domain": {
+      "description": "New Egyptian Civil Code questions (not in the eval set), Arabic and English",
+      "queries": [
+        "Is a contract concluded by a minor valid?",
+        "What compensation is owed for damage caused by a wrongful act?",
+        "When does an offer to contract stop being binding?",
+        "Can a lessee sublet the leased property without the lessor's consent?",
+        "What is the limitation period for claims arising from unjust enrichment?",
+        "Who is liable for damage caused by an animal?",
+        "Can the parties agree in advance on the amount of compensation?",
+        "What obligations does a seller have regarding delivery of the thing sold?",
+        "هل يكون العقد الذي يبرمه القاصر صحيحاً؟",
+        "ما التعويض المستحق عن الضرر الناتج عن العمل غير المشروع؟",
+        "متى يسقط الإيجاب ولا يعود ملزماً؟",
+        "هل يجوز للمستأجر التأجير من الباطن دون موافقة المؤجر؟",
+        "ما مدة تقادم دعوى الإثراء بلا سبب؟",
+        "من المسؤول عن الضرر الذي يحدثه الحيوان؟",
+        "هل يجوز للمتعاقدين تحديد مقدار التعويض مقدماً؟",
+        "ما التزامات البائع بشأن تسليم المبيع؟"
+      ]
+    },
+    "other_jurisdiction": {
+      "description": "Legal questions about other laws or countries: Saudi regulations, Egyptian criminal, labour, tax and company law",
+      "queries": [
+        "How is the end-of-service award calculated under the Saudi Labor Law?",
+        "What is the notice period for resigning under Saudi labor regulations?",
+        "What is the penalty for drug possession under the Egyptian Penal Code?",
+        "How long can the public prosecution detain a suspect before trial in Egypt?",
+        "What is the VAT rate in Saudi Arabia?",
+        "What are the income tax brackets for individuals in Egypt?",
+        "How do I register a limited liability company in Riyadh?",
+        "What are the requirements for a commercial register in Saudi Arabia?",
+        "كيف تحسب مكافأة نهاية الخدمة وفق نظام العمل السعودي؟",
+        "ما مدة الإشعار عند الاستقالة في نظام العمل السعودي؟",
+        "ما عقوبة حيازة المخدرات في قانون العقوبات المصري؟",
+        "ما مدة الحبس الاحتياطي في قانون الإجراءات الجنائية المصري؟",
+        "ما نسبة ضريبة القيمة المضافة في السعودية؟",
+        "ما شرائح ضريبة الدخل على الأفراد في مصر؟",
+        "كيف أسجل شركة ذات مسؤولية محدودة في الرياض؟",
+        "ما متطلبات استخراج السجل التجاري في السعودية؟"
+      ]
+    },
+    "off_topic": {
+      "description": "Requests that are not legal questions",
+      "queries": [
+        "What's the weather in Cairo tomorrow?",
+        "Give me a recipe for koshari.",
+        "Which football team won the Egyptian league last season?",
+        "How do I reset my email password?",
+        "Recommend a good laptop for programming.",
+        "Translate 'good morning' into French.",
+        "What time does the metro close in Cairo?",
+        "Write a short poem about the Nile.",
+        "ما حالة الطقس في القاهرة غداً؟",
+        "أعطني وصفة الكشري.",
+        "من فاز بالدوري المصري الموسم الماضي؟",
+        "كيف أعيد تعيين كلمة مرور بريدي الإلكتروني؟",
+        "رشح لي حاسوباً محمولاً جيداً للبرمجة.",
+        "ترجم عبارة صباح الخير إلى الفرنسية.",
+        "متى يغلق مترو القاهرة؟",
+        "اكتب قصيدة قصيرة عن النيل."
+      ]
+    }
+  }
+}

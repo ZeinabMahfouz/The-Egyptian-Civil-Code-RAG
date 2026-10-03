@@ -70,6 +70,32 @@ RAGAS_FAITHFULNESS = Gauge(
     "Absent until a run has produced real scores.",
     ["source"],
 )
+# Batch drift check (scripts/embedding_drift.py): drift of each query window
+# from the evaluation questions, and the threshold calibrated for that window
+# size. Labelled for the same reason as the faithfulness gauge: no sample
+# until a drift report exists.
+QUERY_DRIFT = Gauge(
+    "rag_query_embedding_drift",
+    "1 - cosine(centroid of a query window, centroid of the evaluation questions), BGE-M3",
+    ["window"],
+)
+QUERY_DRIFT_THRESHOLD = Gauge(
+    "rag_query_embedding_drift_threshold",
+    "99th percentile of drift between random evaluation-set samples of the window's size",
+    ["window"],
+)
+
+
+def load_query_drift(path: Path = Path("reports/drift.json")) -> dict | None:
+    """Exports the latest drift report as gauges; None if there isn't one."""
+    try:
+        windows = json.loads(path.read_text(encoding="utf-8"))["windows"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    for name, w in windows.items():
+        QUERY_DRIFT.labels(name).set(w["drift"])
+        QUERY_DRIFT_THRESHOLD.labels(name).set(w["threshold"])
+    return windows
 
 
 def load_ragas_faithfulness(path: Path = Path("reports/ragas_results.json")) -> float | None:

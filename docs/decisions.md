@@ -1197,3 +1197,72 @@ third of the latency without touching the GPU.
 CPU. A single 5-minute run is one measurement, not an average. The 1-user p95
 (2.2 s) is the latency one user waits; the 50-user p95 (12 s) is the one that
 matters for capacity planning.
+
+## Query drift: alert on "does the Civil Code cover this?", not on phrasing
+
+**Question.** Are users still asking what the system was built and evaluated
+for? If not, the RAGAS scores no longer describe real traffic, and refusals
+will rise. `scripts/embedding_drift.py` checks a batch ("window") of queries
+against the 54 evaluation questions, with BGE-M3. Three test windows of 16
+new questions each, half Arabic, none from the eval set
+(`tests/eval/drift_windows.json`): `in_domain` (new Civil Code questions),
+`other_jurisdiction` (Saudi labour law and VAT; Egyptian criminal, tax and
+company law), and `off_topic` (weather, recipes, football).
+
+**First attempt: centroid drift.** 1 − cosine between the mean embedding of
+the window and of the eval set, with the threshold calibrated by drawing 1000
+random eval samples of the same size (the 99th percentile of drift that
+happens by chance).
+
+| Window | Drift | Threshold | Flagged |
+|---|---|---|---|
+| in_domain | 0.120 | 0.090 | yes ✗ |
+| other_jurisdiction | 0.231 | 0.090 | yes |
+| off_topic | 0.298 | 0.090 | yes |
+
+It ranks the windows correctly, but it **flags ordinary Civil Code
+questions**. The reason is the baseline's mix: a third of the eval set is
+templated lookups ("What does Article 43 say?", "Is Article 400 still in
+force?"), which pull the eval centroid toward that template. A window of
+normal full-sentence questions differs in *phrasing*, and the threshold only
+accounts for sampling noise, not for a different mix of question types. An
+alert that fires on normal traffic gets ignored, so this signal is reported
+but not alerted on.
+
+**What alerts instead: off-corpus share.** For each query, the cosine
+similarity of its best match among the *indexed articles*: does the Civil
+Code contain anything close to this? The cut-off (0.646) is the 5th
+percentile of that score over the 26 substantive eval questions, so about 5%
+of normal questions fall below it by chance. Article lookups are left out
+because they are answered by an exact filter, not by similarity. A window is
+flagged when the number of queries below the cut-off reaches the binomial
+limit for a 5% base rate at a 1% false-alarm rate: 4 of 16.
+
+| Window | Mean best-match similarity | Below cut-off | Limit | Flagged |
+|---|---|---|---|---|
+| in_domain | 0.693 | 2 of 16 | 4 | no ✓ |
+| other_jurisdiction | 0.498 | **16 of 16** | 4 | **yes** ✓ |
+| off_topic | 0.449 | **16 of 16** | 4 | **yes** ✓ |
+
+The separation is wide: every question from another jurisdiction or off
+topic falls below the cut-off, and normal questions stay under the limit.
+Each window is half Arabic and half English; the results weren't split by
+language.
+
+**Where it shows up.** `reports/drift.md` and `drift.json`; an MLflow
+experiment `civil-code-rag-drift` (one run per window); Prometheus gauges
+`rag_query_off_corpus_share` and `rag_query_off_corpus_limit` (plus the
+centroid gauges) loaded when the API starts; the `RagQueryDrift` alert in
+`deploy/monitoring/prometheus/alerts.yml`; and a Grafana panel. The live
+counterpart is the existing "Retrieval top score" panel, which tracks the
+same similarity on every real request.
+
+**Limits.**
+- The windows are written by hand to simulate drift. Real traffic would come
+  from logged (PII-redacted) questions.
+- 16 queries per window: the binomial test needs at least 4 low-similarity
+  queries to flag, so slow drift is caught later than sudden drift.
+- The cut-off comes from 26 questions, so it is approximate. With more real
+  traffic it should be recalibrated.
+- In-domain had 2 of 16 below the cut-off (the expected rate is 5%, about
+  1 of 16). That is within chance, but the margin to the limit is small.

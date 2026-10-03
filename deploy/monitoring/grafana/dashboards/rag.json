@@ -574,6 +574,71 @@
           "legendFormat": "median best-chunk similarity"
         }
       ]
+    },
+    {
+      "id": 11,
+      "type": "bargauge",
+      "title": "Query-embedding drift by window (batch check)",
+      "description": "1 - cosine between each query window's centroid and the evaluation questions' centroid (BGE-M3). Each window is shown with its threshold, calibrated for its size; the RagQueryDrift alert fires when drift is above it. Source: reports/drift.json, from scripts/embedding_drift.py.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 24,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 4,
+          "min": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rag_query_embedding_drift",
+          "legendFormat": "{{window}} drift"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rag_query_embedding_drift_threshold",
+          "legendFormat": "{{window}} threshold"
+        }
+      ]
     }
   ]
 }
