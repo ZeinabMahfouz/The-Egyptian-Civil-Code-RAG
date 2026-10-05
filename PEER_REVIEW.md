@@ -107,6 +107,7 @@ models: `docker compose down -v`.
 
 | Symptom | Fix |
 |---|---|
+| `curl: (56) Connection reset by peer`, or `docker compose ps` shows `(unhealthy)` | Still starting: the models are downloading. Wait for `Application startup complete` in `docker compose logs -f api`; the status turns `(healthy)` by itself |
 | `port is already allocated` (8000) | Stop whatever uses port 8000, or change `"8000:8000"` to `"8001:8000"` in `docker-compose.yml` and use port 8001 |
 | Container restarts or is `Killed` | Docker needs more memory: set at least 8 GB in Docker Desktop → Settings → Resources |
 | `/health` still failing after 20 min | `docker compose logs api` and look at the last lines (usually a model download that stalled; `docker compose restart api` resumes it) |
