@@ -18,18 +18,22 @@ groups:
             RAGAS run in MLflow before promoting any release.
 
       # Batch drift check (scripts/embedding_drift.py). Fires per query
-      # window whose drift exceeds the threshold calibrated for its size:
-      # users are asking about something the system wasn't evaluated on.
+      # window with too many questions that have no close match among the
+      # indexed articles: users are asking about something the Civil Code
+      # doesn't cover. (Centroid drift is on the dashboard but doesn't alert:
+      # it flagged ordinary Civil Code questions -- docs/decisions.md.)
       - alert: RagQueryDrift
-        expr: rag_query_embedding_drift > on(window) rag_query_embedding_drift_threshold
+        expr: rag_query_off_corpus_share >= on(window) rag_query_off_corpus_limit
         labels:
           severity: warning
         annotations:
-          summary: "Query window {{ $labels.window }} drifted from the evaluation questions"
+          summary: "Query window {{ $labels.window }}: {{ $value | humanizePercentage }} of questions have no close match in the Civil Code"
           description: >-
-            The window's embedding centroid is further from the evaluation
-            set than 99% of random evaluation samples. RAGAS scores may not
-            describe this traffic: extend the eval set before trusting them.
+            More questions than chance allows (binomial test, 1% false-alarm
+            rate) fall below the corpus similarity cut-off. Users are asking
+            about something the indexed articles don't cover; RAGAS scores
+            don't describe this traffic. Check the questions, extend the
+            corpus or the eval set.
 
   - name: rag-serving
     rules:

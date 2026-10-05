@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import yaml
 
 REPO = Path(__file__).parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
@@ -133,6 +134,35 @@ def test_drift_report_exported_as_gauges(tmp_path):
         REGISTRY.get_sample_value("rag_query_embedding_drift_threshold", {"window": "w1"}) == 0.03
     )
     assert metrics.load_query_drift(tmp_path / "missing.json") is None
+
+
+def test_off_corpus_share_exported_and_alert_matches_the_report(tmp_path):
+    # The alert compares these two gauges; with the committed report it must
+    # flag exactly the windows the report flags (not in_domain, which the
+    # centroid measure wrongly flagged).
+    from prometheus_client import REGISTRY
+
+    f = tmp_path / "drift.json"
+    w = {"drift": 0.1, "threshold": 0.2, "n_queries": 16, "low_similarity_limit": 4}
+    f.write_text(json.dumps({"windows": {"w2": {**w, "off_corpus_share": 0.25}}}))
+    metrics.load_query_drift(f)
+    assert REGISTRY.get_sample_value("rag_query_off_corpus_share", {"window": "w2"}) == 0.25
+    assert REGISTRY.get_sample_value("rag_query_off_corpus_limit", {"window": "w2"}) == 0.25
+
+    windows = json.loads((REPO / "reports/drift.json").read_text(encoding="utf-8"))["windows"]
+    fires = {
+        n
+        for n, r in windows.items()
+        if r["off_corpus_share"] >= r["low_similarity_limit"] / r["n_queries"]
+    }
+    assert fires == {n for n, r in windows.items() if r["off_corpus"]}
+    assert "in_domain" not in fires
+
+    rules = yaml.safe_load((REPO / "deploy/monitoring/prometheus/alerts.yml").read_text())
+    expr = next(
+        r["expr"] for g in rules["groups"] for r in g["rules"] if r.get("alert") == "RagQueryDrift"
+    )
+    assert expr == "rag_query_off_corpus_share >= on(window) rag_query_off_corpus_limit"
 
 
 def test_windows_file_is_disjoint_from_eval_set():

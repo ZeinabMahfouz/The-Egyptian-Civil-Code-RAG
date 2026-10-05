@@ -578,8 +578,8 @@
     {
       "id": 11,
       "type": "bargauge",
-      "title": "Query-embedding drift by window (batch check)",
-      "description": "1 - cosine between each query window's centroid and the evaluation questions' centroid (BGE-M3). Each window is shown with its threshold, calibrated for its size; the RagQueryDrift alert fires when drift is above it. Source: reports/drift.json, from scripts/embedding_drift.py.",
+      "title": "Query-embedding centroid drift by window (reported, not alerted)",
+      "description": "1 - cosine between each query window's centroid and the evaluation questions' centroid (BGE-M3), with the threshold calibrated for the window size. Reported only, not alerted: it reacts to phrasing and flagged ordinary Civil Code questions (docs/decisions.md). Source: reports/drift.json, from scripts/embedding_drift.py.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -637,6 +637,73 @@
           },
           "expr": "rag_query_embedding_drift_threshold",
           "legendFormat": "{{window}} threshold"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "bargauge",
+      "title": "Off-corpus share by window (RagQueryDrift)",
+      "description": "Share of each query window whose best match among the indexed articles is below the corpus cut-off (5th percentile of the evaluation questions). The RagQueryDrift alert fires when the share reaches the limit (binomial test, 1% false-alarm rate). Source: reports/drift.json.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 35,
+        "w": 24,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2,
+          "min": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "max": 1,
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rag_query_off_corpus_share",
+          "legendFormat": "{{window}} off-corpus share"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rag_query_off_corpus_limit",
+          "legendFormat": "{{window}} limit"
         }
       ]
     }
