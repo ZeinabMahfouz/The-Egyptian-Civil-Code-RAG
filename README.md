@@ -362,6 +362,8 @@ simulated windows are off-corpus on purpose; `in_domain` stays quiet. The
 same lines are in `deploy/monitoring/alert-receiver/logs/alerts.log`.
 The RESOLVED line is from restarting the API without `RAGAS_REPORT`.
 
+![Alerts delivered by Alertmanager](reports/alertmanager_demo.png)
+
 ![Grafana dashboard](reports/grafana_dashboard.png)
 
 ## GPU evaluation (Kaggle): vLLM, RAGAS, MLflow
