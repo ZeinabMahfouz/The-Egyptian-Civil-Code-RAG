@@ -2,6 +2,7 @@
 calibrated threshold, the reports, and the Prometheus export. Synthetic
 vectors -- no model download."""
 
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -72,7 +73,10 @@ class TopicEmbedder:
     def encode(self, texts, normalize_embeddings=True):
         out = []
         for t in texts:
-            rng = np.random.default_rng(abs(hash(t)) % 2**32)
+            # hashlib, not hash(): Python randomizes str hashes per process,
+            # which made this test pass or fail depending on the run (~3%).
+            seed = int.from_bytes(hashlib.sha256(t.encode("utf-8")).digest()[:4], "little")
+            rng = np.random.default_rng(seed)
             v = 0.3 * rng.standard_normal(DIM)
             v[1 if "weather" in t.lower() else 0] += 3
             out.append(v / np.linalg.norm(v))
