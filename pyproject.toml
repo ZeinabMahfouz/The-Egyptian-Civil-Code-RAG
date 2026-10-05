@@ -7,13 +7,30 @@ name = "egyptian-civil-code-rag"
 version = "0.1.0"
 description = "Arabic legal RAG system for the Egyptian Civil Code (ITI MLOps final project)"
 requires-python = ">=3.11"
+# Everything the package imports at runtime. requirements.txt pins exact
+# versions for CI/Docker; these are the compatible ranges, so that
+# `pip install -e .` alone gives a working API (tests/test_packaging.py checks it).
 dependencies = [
-    "qdrant-client",
-    "sentence-transformers",
-    "pyyaml",
-    "transformers",
-    "torch",
+    "fastapi>=0.110",
+    "uvicorn>=0.30",
+    "pydantic>=2.0",
+    "qdrant-client>=1.10",
+    "sentence-transformers>=3.0",
+    "transformers>=4.51",
+    "torch>=2.2",
+    "numpy>=1.26",
+    "pyyaml>=6.0",
+    "openai>=1.40,<2",
+    "langfuse>=4,<5",
+    "prometheus-client>=0.20",
 ]
+
+[project.optional-dependencies]
+# BentoML service (src/egyptian_civil_code_rag/service.py) -- its own environment,
+# see requirements-serve.txt
+serve = ["bentoml"]
+# Optional Guardrails AI enforcement layer for the PII validator (pii.py works without it)
+guardrails = ["guardrails-ai"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
