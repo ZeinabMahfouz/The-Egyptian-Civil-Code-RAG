@@ -1,5 +1,5 @@
 # Alert rules for the RAG API. Visible (and firing) at http://localhost:19090/alerts.
-# Delivery (email/Slack) would go through Alertmanager -- see README "Monitoring".
+# Firing alerts go to Alertmanager, which delivers them (alertmanager/alertmanager.yml).
 groups:
   - name: rag-quality
     rules:

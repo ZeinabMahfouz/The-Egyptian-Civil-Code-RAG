@@ -1,0 +1,11 @@
+{
+  "meta": {
+    "note": "DEMO ONLY -- not a real evaluation. Load it with RAGAS_REPORT to show the RagFaithfulnessLow alert being delivered (README, Monitoring)."
+  },
+  "aggregate": {"faithfulness": 0.62},
+  "rows": [
+    {"_id": "demo1", "_category": "substantive", "faithfulness": 0.55},
+    {"_id": "demo2", "_category": "substantive", "faithfulness": 0.60},
+    {"_id": "demo3", "_category": "substantive", "faithfulness": 0.71}
+  ]
+}

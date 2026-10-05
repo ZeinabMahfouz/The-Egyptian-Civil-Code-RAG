@@ -143,7 +143,7 @@ check it.
 | 5 | DVC: `dvc repro` reproduces | `dvc.yaml` (extract → validate → chunk → embed), `dvc.lock` | The data remote is a private Google Drive, so you can't `dvc pull`. Instead, open the latest green CI run: the **rebuild_index** job runs `dvc pull` + `dvc repro` + `dvc status` from scratch |
 | 6 | CI/CD with a quality gate | `.github/workflows/ci.yml`, **Actions** tab | lint → test → rebuild_index → build_and_push_image, plus **ragas_gate** (fails if faithfulness < 0.75, or if the evaluation is stale against the corpus or params) |
 | 7 | Production serving | BentoML: `src/egyptian_civil_code_rag/service.py`; vLLM; latency p50/p95 in `reports/quantization.md`; canary rollout in `deploy/canary/` | Locust at 50 users: `reports/locust_u50.html`, summary in `reports/load_test.md` (0 failures, p95 12.0 s) |
-| 8 | Monitoring | `reports/grafana_dashboard.png`, `deploy/monitoring/` (alert rules in `prometheus/alerts.yml`: faithfulness < 0.80, query drift), `reports/drift.md`, `reports/langfuse_trace.png` | Part A: `/metrics` |
+| 8 | Monitoring | `reports/grafana_dashboard.png`, `deploy/monitoring/` (alert rules in `prometheus/alerts.yml`: faithfulness < 0.80, query drift; delivered through Alertmanager to a webhook, demo in README "Monitoring"), `reports/drift.md`, `reports/langfuse_trace.png` | Part A: `/metrics` |
 | 9 | Peer review | this page | |
 | 10 | README and architecture | `README.md` (results, quick start, architecture diagram `docs/architecture.svg`, changelog), `docs/decisions.md` | Could you run it without asking? |
 
@@ -173,7 +173,11 @@ discovering them; spend it on what I *haven't* noticed.
   Qwen3-8B. GPU serving was measured on Kaggle, not packaged as a
   container.
 - The DVC remote is a personal Google Drive, so reviewers can't `dvc pull`.
-  CI proves reproducibility instead.
+  CI proves reproducibility instead. The Drive login CI uses expires every
+  7 days (the Google app is in Testing mode), so a CI run can fail at
+  `dvc pull` until I renew it. That is a credentials problem, not a code
+  one.
+- Alerts go to a local webhook that logs them, not to email or Slack.
 - 2 of 6 out-of-corpus questions were answered instead of declined.
 - The generator and the RAGAS judge are the same model family (Qwen3-8B).
 - Under 50 users, retrieval takes 38% of request time (2.45 s on average);

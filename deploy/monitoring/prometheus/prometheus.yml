@@ -11,6 +11,12 @@ global:
 rule_files:
   - /etc/prometheus/alerts.yml
 
+# Firing alerts are sent to Alertmanager, which groups and delivers them.
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
 scrape_configs:
   - job_name: rag-api
     metrics_path: /metrics
