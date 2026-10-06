@@ -1,4 +1,5 @@
 import json
+import os
 import re
 from pathlib import Path
 from typing import Callable
@@ -8,12 +9,12 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import FieldCondition, Filter, MatchAny, MatchValue
 from sentence_transformers import SentenceTransformer
 
+from egyptian_civil_code_rag.ids import CIVIL_CODE_DOC_ID, point_id
+
 DEFAULT_TOP_K_RAW = 8  # raw Qdrant hits fetched before dedup
 DEFAULT_TOP_K_DISTINCT = 3  # distinct articles kept as context after dedup
 
-# Every indexed point carries a doc_id payload. The Civil Code's is fixed;
-# additional laws added via scripts/reindex_batch.py get their own.
-CIVIL_CODE_DOC_ID = "egyptian_civil_code"
+__all__ = ["CIVIL_CODE_DOC_ID", "RAGQueryEngine", "make_qdrant_client"]
 
 AR_DIGITS = "٠١٢٣٤٥٦٧٨٩"
 EN_DIGITS = "0123456789"
@@ -66,6 +67,15 @@ def extract_referenced_article_numbers(question: str) -> list[int]:
     return numbers
 
 
+def make_qdrant_client(storage_path: str) -> QdrantClient:
+    """QDRANT_URL set -> a Qdrant server; otherwise the local (embedded)
+    store at storage_path. The local client filters in Python and serves
+    one request at a time -- fine for one user, the bottleneck under load
+    (docs/decisions.md, "Retrieval under load")."""
+    url = os.environ.get("QDRANT_URL")
+    return QdrantClient(url=url, timeout=30) if url else QdrantClient(path=storage_path)
+
+
 class RAGQueryEngine:
     def __init__(
         self,
@@ -81,7 +91,7 @@ class RAGQueryEngine:
         with open(params_path, encoding="utf-8") as f:
             params = yaml.safe_load(f)
         self.embed_model = embed_model or SentenceTransformer(params["embedding"]["model_name"])
-        self.client = client or QdrantClient(path=params["qdrant"]["storage_path"])
+        self.client = client or make_qdrant_client(params["qdrant"]["storage_path"])
         self.collection = collection or params["qdrant"]["collection_name"]
         self.generate_fn = generate_fn
         self._check_index_has_doc_ids()
@@ -120,26 +130,34 @@ class RAGQueryEngine:
         fly, and the judge has to verify an English claim against Arabic.
         Swap each hit for its same-language twin when one exists; rank and
         score stay those of the original hit."""
-        out = []
-        for hit in hits:
+        # Point IDs are deterministic (ids.point_id), so the twins are fetched
+        # by ID in one call. The earlier version ran a filtered scroll per hit,
+        # which local Qdrant answers by scanning every payload (~19 ms each).
+        wanted = {}
+        for i, hit in enumerate(hits):
             p = hit.payload
-            if p.get("lang") == lang or "chunk_id" not in p or "doc_id" not in p:
-                out.append(hit)
-                continue
-            twins, _ = self.client.scroll(
-                collection_name=self.collection,
-                scroll_filter=Filter(
-                    must=[
-                        FieldCondition(key="chunk_id", match=MatchValue(value=p["chunk_id"])),
-                        FieldCondition(key="doc_id", match=MatchValue(value=p["doc_id"])),
-                        FieldCondition(key="lang", match=MatchValue(value=lang)),
-                    ]
-                ),
-                limit=1,
-                with_payload=True,
+            if p.get("lang") != lang and "chunk_id" in p and "doc_id" in p:
+                wanted[i] = point_id(p["chunk_id"], lang, p["doc_id"])
+        if not wanted:
+            return list(hits)
+        found = {
+            str(r.id): r.payload
+            for r in self.client.retrieve(
+                self.collection, ids=list(set(wanted.values())), with_payload=True
             )
-            if twins:
-                hit.payload = twins[0].payload
+        }
+        out = []
+        for i, hit in enumerate(hits):
+            twin = found.get(wanted.get(i))
+            # same chunk, same document -- guards against an index built
+            # with a different ID scheme
+            if (
+                twin
+                and twin.get("lang") == lang
+                and twin.get("chunk_id") == hit.payload["chunk_id"]
+                and twin.get("doc_id") == hit.payload["doc_id"]
+            ):
+                hit.payload = twin
             out.append(hit)
         return out
 

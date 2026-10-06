@@ -4,8 +4,12 @@ Locust's own format. The load test itself runs on Kaggle."""
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+import pytest
 
+REPO = Path(__file__).parent.parent
+sys.path.insert(0, str(REPO / "scripts"))
+
+import locust_summary  # noqa: E402
 from locust_summary import main, summarize  # noqa: E402
 
 HEADER = (
@@ -52,3 +56,20 @@ def test_markdown_table_for_several_runs(tmp_path):
     assert "| locust_u1 | 50 | 0 (0.0%) | 0.50 | 1.00 s | 2.00 s |" in md
     assert "| locust_u50 | 1000 | 4 (0.4%) | 3.30 | 1.10 s | 6.00 s | 12.50 s | 30.00 s |" in md
     assert out.read_text() == md
+
+
+def test_stage_means_from_the_committed_load_metrics():
+    # reports/load_metrics.txt is the 50-user run's /metrics snapshot;
+    # docs/decisions.md quotes these means.
+    text = (REPO / "reports" / "load_metrics.txt").read_text(encoding="utf-8")
+    means = locust_summary.stage_means(text)
+    assert means["retrieve"]["count"] == 1778
+    assert means["retrieve"]["mean_s"] == pytest.approx(2.45, abs=0.005)
+    assert means["generate"]["mean_s"] == pytest.approx(4.02, abs=0.005)
+    md = locust_summary.stages_markdown([("u50", means)])
+    assert "| u50 | 2.45 s | 4.02 s | 6.47 s |" in md
+
+
+def test_stage_means_ignores_other_metrics():
+    text = 'rag_requests_total{status="ok"} 5\nrag_request_latency_seconds_count{stage="x"} 0\n'
+    assert locust_summary.stage_means(text) == {"x": {"count": 0, "mean_s": None}}

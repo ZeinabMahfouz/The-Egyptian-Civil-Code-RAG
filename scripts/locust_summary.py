@@ -6,11 +6,48 @@
 Each argument is a --csv prefix given to locust; the script reads
 <prefix>_stats.csv and reports the /ask row: requests, failures, throughput
 and latency percentiles.
+
+--metrics adds the API's own view: mean time per pipeline stage, from a
+/metrics snapshot taken after the run (one snapshot per API process, so each
+run's histogram covers that run only).
 """
 
 import argparse
 import csv
+import re
 from pathlib import Path
+
+RE_STAGE = re.compile(
+    r'^rag_request_latency_seconds_(sum|count)\{[^}]*stage="(\w+)"[^}]*\}\s+([0-9.eE+-]+)$'
+)
+
+
+def stage_means(metrics_text: str) -> dict[str, dict]:
+    """Prometheus exposition -> {stage: {"count", "mean_s"}} for the
+    rag_request_latency_seconds histogram (all services summed)."""
+    acc: dict[str, dict] = {}
+    for line in metrics_text.splitlines():
+        m = RE_STAGE.match(line.strip())
+        if m:
+            kind, stage, value = m.groups()
+            acc.setdefault(stage, {"sum": 0.0, "count": 0.0})[kind] += float(value)
+    return {
+        stage: {"count": int(v["count"]), "mean_s": v["sum"] / v["count"] if v["count"] else None}
+        for stage, v in acc.items()
+    }
+
+
+def stages_markdown(named: list[tuple[str, dict]]) -> str:
+    stages = [s for s in ("retrieve", "generate", "total") if any(s in d for _, d in named)]
+    lines = ["| Run | " + " | ".join(f"{s} (mean)" for s in stages) + " |"]
+    lines.append("|---|" + "---|" * len(stages))
+    for name, d in named:
+        cells = [
+            f"{d[s]['mean_s']:.2f} s" if s in d and d[s]["mean_s"] is not None else "n/a"
+            for s in stages
+        ]
+        lines.append(f"| {name} | " + " | ".join(cells) + " |")
+    return "\n".join(lines) + "\n"
 
 
 def read_row(prefix: str, name: str = "/ask") -> dict | None:
@@ -67,8 +104,19 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("prefixes", nargs="+")
     ap.add_argument("--out", default=None)
+    ap.add_argument(
+        "--metrics", nargs="+", default=[], help="/metrics snapshots, one per prefix, same order"
+    )
     args = ap.parse_args(argv)
     md = to_markdown([summarize(p) for p in args.prefixes])
+    if args.metrics:
+        if len(args.metrics) != len(args.prefixes):
+            raise SystemExit("--metrics needs one file per prefix")
+        named = [
+            (Path(p).name, stage_means(Path(m).read_text(encoding="utf-8")))
+            for p, m in zip(args.prefixes, args.metrics)
+        ]
+        md += "\nTime per stage (API metrics):\n\n" + stages_markdown(named)
     if args.out:
         Path(args.out).write_text(md, encoding="utf-8")
     print(md)
