@@ -435,20 +435,25 @@ takes 38% of the time. Reports: `reports/locust_u50.html`,
 
 **Retrieval under load.** Benchmarking the vector store alone
 (`scripts/retrieval_bench.py`) showed that local Qdrant filters in Python
-and serves one request at a time: about 15 retrievals/s, about 3 s of
-queueing at 50 concurrent calls. Two fixes:
+and serves one request at a time. Two fixes: the same-language copy of an
+article is fetched by its ID instead of by a filtered scan, and an optional
+Qdrant server with payload indexes. Re-run at 50 users on Kaggle
+(`notebooks/kaggle_load_test_qdrant.ipynb`):
 
-- the same-language copy of an article is fetched by its ID instead of by a
-  filtered scan (2.4x throughput on the local store);
-- an optional Qdrant server with payload indexes (12x throughput, about
-  0.25 s at 50 concurrent calls).
+| 50 users, 5 min | Requests/s | p50 | Max | Retrieve (mean) | Generate (mean) |
+|---|---|---|---|---|---|
+| before | 5.65 | 7.0 s | 18.1 s | 2.45 s | 4.02 s |
+| twin by ID, local Qdrant | 6.84 | 5.0 s | 20.0 s | 0.40 s | 5.13 s |
+| **twin by ID, Qdrant server** | **7.30** | **4.6 s** | **14.0 s** | **0.13 s** | 5.07 s |
+
+Retrieval is 19x faster and throughput is up 29%, with 0 failures. The
+bottleneck is now generation on the GPU (`reports/load_test_qdrant.md`,
+analysis in `docs/decisions.md`). To run with the Qdrant server:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.qdrant.yml up -d   # API + Qdrant server
 python scripts/retrieval_bench.py --url http://localhost:6333            # benchmark against it
 ```
-
-The end-to-end check at 50 users is `notebooks/kaggle_load_test_qdrant.ipynb`.
 
 ## Query drift
 
@@ -481,4 +486,4 @@ green. The full reasoning, including what didn't work, is in
 | 4 · Observability | Langfuse tracing (no raw PII in traces); Prometheus metrics, Grafana dashboard, alert rules; streaming (`/ask/stream`) with PII-safe incremental redaction; Arabic lam-alef extraction fix |
 | 5 · GPU evaluation and optimization | vLLM + Qwen3-8B on Kaggle; RAGAS on 54 questions; MLflow 5-config sweep and registry; CI RAGAS gate with staleness check; evaluation fixes (repeal-flag data bug, same-language retrieval, judge context, refusal scoring); AWQ 4-bit; Locust at 50 users; query-drift check |
 | 6 · Review readiness | Public image, 3-command setup without DVC, peer review guide and issue template, repealed-range fix found in the reviewer dry run, architecture diagram |
-| 7 · After submission | Alerts delivered through Alertmanager; drift alert switched to the off-corpus share; retrieval bottleneck measured, same-language lookup by ID, optional Qdrant server |
+| 7 · After submission | Alerts delivered through Alertmanager; drift alert switched to the off-corpus share; retrieval 2.45 s → 0.13 s at 50 users (same-language lookup by ID, optional Qdrant server), +29% throughput |

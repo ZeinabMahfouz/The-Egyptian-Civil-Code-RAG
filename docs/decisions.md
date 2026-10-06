@@ -1351,7 +1351,7 @@ waits about 3 s in that queue, close to the 2.45 s measured on Kaggle.
    unchanged: for one user the local store is fine, and the review setup
    keeps working.
 
-**Result** (`retrieval_bench.py`, 50 concurrent calls; server rows are
+**Result in the sandbox** (`retrieval_bench.py`, 50 concurrent calls; server rows are
 typical of 3–5 runs):
 
 | Code | Store | Mean | p95 | Retrievals/s |
@@ -1367,13 +1367,49 @@ from about 3 s to about 0.25 s. With one caller the gain is smaller (local:
 62 → 22 ms; server: 8 ms), because the queue was the problem, not a single
 search.
 
-**Not yet shown.** These numbers isolate the vector store in a sandbox. The
-end-to-end effect on the served API (BGE-M3 on GPU, vLLM, 50 Locust users)
-needs the Kaggle run, `notebooks/kaggle_load_test_qdrant.ipynb`. It runs
-50 users twice, local and server, each with a fresh API, so the per-stage
-histograms don't mix runs (they did in the first load test, which included
-the 1-user run). Embedding batching is left until that run shows how much of
-the remaining retrieval time is the embedder.
+**End to end on Kaggle** (`notebooks/kaggle_load_test_qdrant.ipynb`): the
+served API (FastAPI → Qwen3-8B-AWQ on vLLM, BGE-M3 on GPU, 2x T4), 50 Locust
+users for 5 minutes, a fresh API process per run so each `/metrics`
+histogram covers that run only. The first row is the original load test.
+
+| 50 users, 5 min | Requests | Failures | Requests/s | p50 | p95 | p99 | Max |
+|---|---|---|---|---|---|---|---|
+| before (old code, local Qdrant) | 1,692 | 0 | 5.65 | 7.0 s | 12.0 s | 15.0 s | 18.1 s |
+| twin by ID, local Qdrant | 2,040 | 0 | 6.84 | 5.0 s | 12.0 s | 13.0 s | 20.0 s |
+| **twin by ID, Qdrant server** | **2,186** | **0** | **7.30** | **4.6 s** | **11.0 s** | **13.0 s** | **14.0 s** |
+
+| Mean time per request | Retrieve | Generate | Total |
+|---|---|---|---|
+| before | 2.45 s | 4.02 s | 6.47 s |
+| twin by ID, local Qdrant | 0.40 s | 5.13 s | 5.54 s |
+| **twin by ID, Qdrant server** | **0.13 s** | 5.07 s | 5.20 s |
+
+- **Retrieval: 2.45 s → 0.13 s (19x).** The ID lookup alone took it to
+  0.40 s; the server removed most of the rest. It went from 38% of request
+  time to 2.5%.
+- **Throughput: +29%** (5.65 → 7.30 requests/s) with 0 failures, on the
+  same GPUs and model. Median latency 7.0 → 4.6 s; the slowest request
+  18.1 → 14.0 s.
+- **Generation got slower, 4.0 → 5.1 s, and that is expected.** Requests no
+  longer wait in retrieval, so more of them reach vLLM at once and queue
+  there. The bottleneck has moved to the GPU, which is where it should be
+  for an LLM service. More capacity now means more GPU or a smaller model
+  (AWQ already used), not more retrieval work.
+- **p95 barely moved** (12 → 11 s): the slowest requests are the long
+  answers, which are generation time.
+- Embedding batching is no longer worth doing: all of retrieval, embedding
+  included, is now 0.13 s.
+
+The "before" retrieve mean also includes the 47 requests of the 1-user run
+(same API process); they are 3% of its requests and were faster, so the
+true 50-user figure was, if anything, slightly higher than 2.45 s.
+
+**Locust hang.** In both runs Locust 2.x crashed at shutdown in its CSV
+writer (`ValueError: I/O operation on closed file`) and sometimes didn't
+exit. The CSV was complete both times (checked: the `/ask` row matches the
+summary). The notebook now saves `/metrics` in its own cell after the
+Locust cell, so interrupting a hung Locust no longer loses the API's
+numbers.
 
 **Limits.** In one of about 15 server runs, one call failed with an
 `httpx` "Bad file descriptor" read error at 50 threads; it did not repeat in
@@ -1384,10 +1420,11 @@ the index with the same point count.
 
 ## Next steps (not done, in priority order)
 
-1. **Confirm the retrieval fix end to end.** Twin-by-ID and the optional
-   Qdrant server are done and benchmarked (section above). Run
-   `notebooks/kaggle_load_test_qdrant.ipynb` to measure the served API at
-   50 users. Then decide on batching query embeddings.
+1. **Generation capacity.** After the retrieval fix (2.45 s → 0.13 s at
+   50 users), generation is 97% of request time. Options: a third GPU or a
+   larger one, vLLM's prefix caching for the shared prompt header, or
+   shorter answers (a lower `max_tokens`). Measure each against the
+   RAGAS gate, since shorter answers can lose citations.
 2. **Refuse below the drift cut-off.** The 0.646 corpus cut-off from the
    drift check could also decline a single question. 2 of 6 out-of-corpus
    questions were answered instead of declined. This needs its own
