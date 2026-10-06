@@ -1,0 +1,24 @@
+# Alertmanager: groups the alerts Prometheus fires and delivers them.
+#
+# Delivery here is a webhook to a small local receiver (../alert-receiver)
+# that writes every notification to its log -- no email or Slack account
+# needed to run or review it. For a real team, swap the receiver for
+# email_configs / slack_configs; the routing below stays the same.
+route:
+  receiver: local-log
+  group_by: ["alertname"]
+  group_wait: 10s        # first notification shortly after an alert fires
+  group_interval: 1m
+  repeat_interval: 4h    # still firing -> remind every 4 hours
+  routes:
+    # quality alerts (faithfulness, drift) and serving alerts go to the same
+    # place today; separate receivers would split them by team
+    - matchers: ['severity="critical"']
+      receiver: local-log
+      repeat_interval: 1h
+
+receivers:
+  - name: local-log
+    webhook_configs:
+      - url: http://alert-receiver:8080/alerts
+        send_resolved: true

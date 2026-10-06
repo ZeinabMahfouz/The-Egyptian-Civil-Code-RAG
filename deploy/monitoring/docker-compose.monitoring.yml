@@ -4,6 +4,8 @@
 #
 #   Prometheus  http://localhost:19090   (targets: /targets, alerts: /alerts)
 #   Grafana     http://localhost:3001    (admin / admin, dashboard "Egyptian Civil Code RAG")
+#   Alertmanager http://localhost:19093  (grouped alerts, silences)
+#   Delivered notifications: docker compose ... logs -f alert-receiver
 #
 # Host ports are 19090 / 3001, not the defaults 9090 / 3000: on the dev
 # machine those are taken by Langfuse (3000) and its MinIO (9090).
@@ -20,6 +22,25 @@ services:
       - prometheus_data:/prometheus
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      - alertmanager
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    ports:
+      - "127.0.0.1:19093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    restart: unless-stopped
+
+  # Stand-in for email/Slack: logs every notification Alertmanager sends.
+  alert-receiver:
+    image: python:3.13-slim
+    command: ["python", "/app/receiver.py", "8080"]
+    volumes:
+      - ./alert-receiver/receiver.py:/app/receiver.py:ro
+      - ./alert-receiver/logs:/logs
     restart: unless-stopped
 
   grafana:

@@ -78,7 +78,7 @@ tests/                         pytest suite; tests/eval/ holds the 54 evaluation
 data/                          DVC-tracked: raw PDF, interim JSON, Qdrant index; documents/
 notebooks/                     Kaggle GPU notebooks: evaluation, quantization, load test
 load_test/                     Locust load test
-deploy/                        canary rollout (nginx), monitoring (Prometheus + Grafana)
+deploy/                        canary rollout (nginx), monitoring (Prometheus, Grafana, Alertmanager)
 reports/                       results: RAGAS, MLflow screenshots, quantization, Locust, drift
 docs/decisions.md              every design decision, failure and result, with numbers
 dvc.yaml · params.yaml         pipeline stages and parameters
@@ -295,14 +295,14 @@ uvicorn egyptian_civil_code_rag.api:app --port 8000
 
 ![Langfuse trace of one /ask request](reports/langfuse_trace.png)
 
-## Monitoring (Prometheus + Grafana)
+## Monitoring (Prometheus, Grafana, Alertmanager)
 
 The FastAPI app exposes Prometheus metrics at `GET /metrics`: request count
 by status, latency per stage (total / retrieve / generate), LLM tokens in and
 out, PII redactions by entity type, best-chunk retrieval similarity, the
 latest RAGAS faithfulness, and the latest query-drift check.
-`deploy/monitoring/` runs Prometheus and a
-pre-provisioned Grafana dashboard against it:
+`deploy/monitoring/` runs Prometheus, a pre-provisioned Grafana dashboard
+and Alertmanager against it:
 
 ```bash
 uvicorn egyptian_civil_code_rag.api:app --host 0.0.0.0 --port 8000   # the API, on the host
@@ -311,6 +311,7 @@ docker compose -f deploy/monitoring/docker-compose.monitoring.yml up -d
 
 - Grafana: http://localhost:3001 (admin / admin), dashboard **Egyptian Civil Code RAG**
 - Prometheus: http://localhost:19090 (`/targets` for the scrape, `/alerts` for the rules)
+- Alertmanager: http://localhost:19093 (alerts received, grouping, silences)
 
 **Cost per hour** is `tokens per hour / 1000 x price per 1k tokens`. The price
 is a dashboard variable (default $0.002) because a self-hosted model has no
@@ -327,8 +328,41 @@ per-token bill. Set it to a hosted-API equivalent or to your GPU cost per
 | `RagApiDown` | `/metrics` unreachable for 1 min |
 | `RagQueryDrift` | a query window has too many questions with no close match among the indexed articles (see Query drift) |
 
-The alerts fire in Prometheus (`/alerts`). Sending them to email or Slack would
-add Alertmanager, which is not set up here.
+**Delivery.** Prometheus sends firing alerts to Alertmanager, which groups
+them by alert name, waits 10 s, and posts them to a webhook. The webhook is
+a small standard-library receiver (`deploy/monitoring/alert-receiver/`) that
+writes one line per alert, so delivery works without an email or Slack
+account. Critical alerts repeat every hour while firing, warnings every 4
+hours, and a "RESOLVED" line follows when an alert clears. For a real team,
+replace the webhook in `alertmanager/alertmanager.yml` with `email_configs`
+or `slack_configs`; the routing stays the same.
+
+**Demo: see an alert delivered.** The committed RAGAS report scores 0.896,
+so `RagFaithfulnessLow` is quiet. `RAGAS_REPORT` points the API at a demo
+report below the threshold (`deploy/monitoring/demo/`, marked DEMO ONLY):
+
+```bash
+RAGAS_REPORT=deploy/monitoring/demo/ragas_low_faithfulness.json \
+  uvicorn egyptian_civil_code_rag.api:app --host 0.0.0.0 --port 8000
+docker compose -f deploy/monitoring/docker-compose.monitoring.yml up -d
+docker compose -f deploy/monitoring/docker-compose.monitoring.yml logs -f alert-receiver
+```
+
+Within about a minute the receiver prints (from a local run):
+
+```
+[2026-10-05 09:48:01 UTC] FIRING warning RagQueryDrift window=off_topic: Query window off_topic: 100% of questions have no close match in the Civil Code
+[2026-10-05 09:48:01 UTC] FIRING warning RagQueryDrift window=other_jurisdiction: Query window other_jurisdiction: 100% of questions have no close match in the Civil Code
+[2026-10-05 09:48:01 UTC] FIRING critical RagFaithfulnessLow: RAGAS faithfulness 0.62 is below 0.80
+[2026-10-05 09:49:01 UTC] RESOLVED critical RagFaithfulnessLow: RAGAS faithfulness 0.62 is below 0.80
+```
+
+The two drift alerts come from the committed `reports/drift.json`, whose
+simulated windows are off-corpus on purpose; `in_domain` stays quiet. The
+same lines are in `deploy/monitoring/alert-receiver/logs/alerts.log`.
+The RESOLVED line is from restarting the API without `RAGAS_REPORT`.
+
+![Alerts delivered by Alertmanager](reports/alertmanager_demo.png)
 
 ![Grafana dashboard](reports/grafana_dashboard.png)
 
@@ -428,6 +462,6 @@ green. The full reasoning, including what didn't work, is in
 | 1 · Data and retrieval | PDF → 1149 validated articles (bilingual column splitting, repealed ranges); article-level chunking; BGE-M3 + Qdrant; query engine with exact article lookup and citation-only sources; FastAPI `/ask` + `/health` with Pydantic; Docker |
 | 2 · MLOps foundation | DVC pipeline with a Google Drive remote; GitHub Actions (lint → test → `dvc repro` → image to GHCR); 54-question evaluation set; first RAGAS attempt on CPU (failed, documented) |
 | 3 · Serving | Batch re-indexing of new laws; PII redaction (Egyptian ID, phone, IBAN, card, email) in questions and answers; canary rollout with nginx and promotion gates; BentoML service |
-| 4 · Observability | Langfuse tracing (no raw PII in traces); Prometheus metrics, Grafana dashboard, alert rules; streaming (`/ask/stream`) with PII-safe incremental redaction; Arabic lam-alef extraction fix |
+| 4 · Observability | Langfuse tracing (no raw PII in traces); Prometheus metrics, Grafana dashboard, alert rules delivered through Alertmanager; streaming (`/ask/stream`) with PII-safe incremental redaction; Arabic lam-alef extraction fix |
 | 5 · GPU evaluation and optimization | vLLM + Qwen3-8B on Kaggle; RAGAS on 54 questions; MLflow 5-config sweep and registry; CI RAGAS gate with staleness check; evaluation fixes (repeal-flag data bug, same-language retrieval, judge context, refusal scoring); AWQ 4-bit; Locust at 50 users; query-drift check |
 | 6 · Review readiness | Public image, 3-command setup without DVC, peer review guide and issue template, repealed-range fix found in the reviewer dry run, architecture diagram |

@@ -84,6 +84,21 @@ QUERY_DRIFT_THRESHOLD = Gauge(
     "99th percentile of drift between random evaluation-set samples of the window's size",
     ["window"],
 )
+# The alerting signal (docs/decisions.md, Query drift): the share of a
+# window's queries whose best match among the indexed articles is below the
+# corpus cut-off, and the share at which the binomial test flags the window.
+# Centroid drift above is kept as a reported signal only -- it reacts to
+# phrasing and flagged ordinary Civil Code questions.
+OFF_CORPUS_SHARE = Gauge(
+    "rag_query_off_corpus_share",
+    "Share of a query window with no close match among the indexed articles",
+    ["window"],
+)
+OFF_CORPUS_LIMIT = Gauge(
+    "rag_query_off_corpus_limit",
+    "Share at which the window is flagged (binomial test, 1% false-alarm rate)",
+    ["window"],
+)
 
 
 def load_query_drift(path: Path = Path("reports/drift.json")) -> dict | None:
@@ -95,6 +110,9 @@ def load_query_drift(path: Path = Path("reports/drift.json")) -> dict | None:
     for name, w in windows.items():
         QUERY_DRIFT.labels(name).set(w["drift"])
         QUERY_DRIFT_THRESHOLD.labels(name).set(w["threshold"])
+        if "off_corpus_share" in w:  # reports from before the off-corpus check lack it
+            OFF_CORPUS_SHARE.labels(name).set(w["off_corpus_share"])
+            OFF_CORPUS_LIMIT.labels(name).set(w["low_similarity_limit"] / w["n_queries"])
     return windows
 
 

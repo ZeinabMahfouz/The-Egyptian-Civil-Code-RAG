@@ -3,6 +3,7 @@ import os
 import queue
 import threading
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request, Response
 from fastapi.responses import StreamingResponse
@@ -56,7 +57,9 @@ def create_app(
 ) -> FastAPI:
     pii_guard = pii_guard or PIIGuard()
     langfuse = langfuse or make_langfuse()
-    load_ragas_faithfulness()  # sets the faithfulness gauge only if real scores exist
+    # Sets the faithfulness gauge only if real scores exist. RAGAS_REPORT points
+    # at another report -- used by the alert-delivery demo (README, Monitoring).
+    load_ragas_faithfulness(Path(os.environ.get("RAGAS_REPORT", "reports/ragas_results.json")))
     load_query_drift()  # drift gauges from the latest batch drift report, if any
     if engine is not None:
         app = FastAPI(title="Egyptian Civil Code RAG")

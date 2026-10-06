@@ -1266,3 +1266,66 @@ same similarity on every real request.
   traffic it should be recalibrated.
 - In-domain had 2 of 16 below the cut-off (the expected rate is 5%, about
   1 of 16). That is within chance, but the margin to the limit is small.
+
+## Alert delivery: Alertmanager with a local webhook receiver
+
+**Problem.** The alert rules fired in Prometheus, but nothing was delivered.
+An alert that only shows on a web page nobody watches doesn't help.
+
+**Decision.** Prometheus → Alertmanager → a webhook. The webhook target is
+a ~60-line standard-library receiver (`deploy/monitoring/alert-receiver/`)
+that writes one line per alert to stdout and to a log file.
+- **Why a webhook and not email or Slack.** Both need an account and a
+  secret, which a reviewer can't run and which would sit in the repo. The
+  routing (group by alert name, 10 s wait, critical repeated hourly,
+  warnings every 4 h, resolved notifications on) is the part worth
+  reviewing. Swapping the receiver for `slack_configs` doesn't change it.
+- **How to show it without breaking anything.** The real RAGAS report
+  scores 0.896, so the faithfulness alert is quiet. The API now reads the
+  report path from `RAGAS_REPORT` (default unchanged), and
+  `deploy/monitoring/demo/ragas_low_faithfulness.json` (marked DEMO ONLY)
+  scores 0.62. The demo report gets its own gauge label, so it can't be
+  mistaken for the real report on the dashboard.
+
+**Bug found while wiring it.** The drift section above says the alert
+fires on off-corpus share, but the rule and gauges were still the centroid
+ones. Under Alertmanager that would have delivered a false alert for the
+in_domain window (centroid drift 0.120 against a threshold of 0.090). The
+rule now compares `rag_query_off_corpus_share` with
+`rag_query_off_corpus_limit`. A test checks that the alert flags exactly
+the windows `reports/drift.json` flags.
+
+**Verified.** Ran locally with the release binaries (Prometheus 3.5.0,
+Alertmanager 0.28.1) and the API on the demo report. Within a minute the
+receiver got `RagFaithfulnessLow` (critical) and `RagQueryDrift` for
+other_jurisdiction and off_topic, but not in_domain. Restarting the API
+without the demo report produced a RESOLVED line one group interval later.
+`amtool check-config` and `promtool check rules` pass.
+
+**Limits.** One receiver for every alert. A team would route quality alerts
+(faithfulness, drift) and serving alerts (errors, latency, API down) to
+different people. There are no silences or inhibit rules: for example,
+`RagApiDown` should mute the latency alert.
+
+## Next steps (not done, in priority order)
+
+1. **Fix the retrieval bottleneck.** Under 50 users, retrieval is 38% of
+   request time. Run Qdrant as a server instead of the in-process client,
+   and batch query embeddings.
+2. **Refuse below the drift cut-off.** The 0.646 corpus cut-off from the
+   drift check could also decline a single question. 2 of 6 out-of-corpus
+   questions were answered instead of declined. This needs its own
+   evaluation, because it also declines some valid questions.
+3. **Re-ranker** (e.g. BGE reranker) over the top-k. Check it against the
+   RAGAS gate, not by eye.
+4. **RAGAS on live traffic.** Score a sample of Langfuse traces and attach
+   the scores to the traces, so faithfulness is measured on real questions
+   and not only the 54-question set.
+5. **Trend in MLflow.** Plot gated RAGAS metrics across evaluation runs, so
+   slow regressions show before they cross the gate.
+6. **CI access to the DVC remote.** The Google OAuth app is in Testing, so
+   its refresh token expires every 7 days and `dvc pull` in CI fails until
+   it is renewed. A service account, or a published OAuth app, removes the
+   manual step.
+7. **Package GPU serving.** The container runs the CPU model. A vLLM image
+   with the AWQ model would match what was evaluated.
