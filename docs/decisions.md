@@ -1188,7 +1188,7 @@ milliseconds (not measured separately here: the histogram mixes both runs). The 
 local (embedded) Qdrant client and the BGE-M3 encoder run inside the API
 process and serialize across FastAPI's worker threads, and that the
 same-language swap does a filtered `scroll` per hit, which local Qdrant
-evaluates by scanning. This is the first thing to fix for more capacity:
+evaluates by scanning. Measured and fixed later: see "Retrieval under load". This is the first thing to fix for more capacity:
 run Qdrant as its own server (the official `qdrant/qdrant` image), and batch
 question embeddings. That should return about a
 third of the latency without touching the GPU.
@@ -1307,11 +1307,87 @@ without the demo report produced a RESOLVED line one group interval later.
 different people. There are no silences or inhibit rules: for example,
 `RagApiDown` should mute the latency alert.
 
+## Retrieval under load: measure the vector store, then fix it
+
+**Problem.** In the 50-user load test, retrieval averaged 2.45 s per request
+(38% of request time) for one embedding and a search over 2,197 points. The
+load-test section only guessed why.
+
+**Measured first.** `scripts/retrieval_bench.py` times `retrieve()` alone
+(exact-article filter, search, dedup, same-language twin swap) on a
+synthetic index with the real shape: 2,197 points, 1024 dimensions, the same
+payload fields and point IDs. The embedder is faked, so only the vector
+store is measured. Run in a 2-CPU sandbox, client and Qdrant on the same
+machine. Cost of each step in local (embedded) Qdrant:
+
+| Step | Local Qdrant | Qdrant server |
+|---|---|---|
+| Search, no filter | 5.4 ms | 3.9 ms |
+| Search, exact-article filter | 27.6 ms | 8.8 ms |
+| Same-language twin, filtered scroll | 18.8 ms | 7.5 ms |
+| Same-language twin, fetch by ID | 0.01 ms | 1.5 ms |
+
+Local Qdrant evaluates filters in Python, point by point, and serves one
+request at a time. One retrieval did one or two filtered searches plus up
+to three filtered scrolls, about 60 ms. That caps throughput at about 15
+retrievals/s however many threads call it. At 50 concurrent requests, each
+waits about 3 s in that queue, close to the 2.45 s measured on Kaggle.
+
+**Fixes.**
+1. *Twin by ID.* Point IDs are already deterministic
+   (`point_id(chunk_id, lang, doc_id)`; the package has a copy in `ids.py`,
+   tested against the indexer's, since editing the indexer would make
+   `dvc repro` re-embed the corpus). The twin is now fetched with one
+   `retrieve(ids=...)` call for all hits instead of one filtered scroll
+   per hit. The twin's payload is checked (same chunk, document and
+   language) before it replaces the hit.
+2. *Qdrant server, optional.* `QDRANT_URL` switches the client to a Qdrant
+   server. `python -m egyptian_civil_code_rag.qdrant_seed` copies the local
+   store (the DVC output baked into the image) into it, in batches (one
+   request with the whole index is ~47 MB, over the server's 32 MB limit),
+   with payload indexes on `doc_id`, `lang`, `chunk_id` and
+   `article_numbers`. It is idempotent, so it runs before every API start
+   in `docker-compose.qdrant.yml`. The default `docker compose up` is
+   unchanged: for one user the local store is fine, and the review setup
+   keeps working.
+
+**Result** (`retrieval_bench.py`, 50 concurrent calls; server rows are
+typical of 3–5 runs):
+
+| Code | Store | Mean | p95 | Retrievals/s |
+|---|---|---|---|---|
+| before | local | 2,986 ms | 4,062 ms | 15 |
+| after (twin by ID) | local | 1,127 ms | 1,681 ms | 36 |
+| before | server | ~315 ms | ~530 ms | ~145 |
+| after (twin by ID) | server | ~245 ms | ~440 ms | ~185 |
+
+The ID lookup alone gives 2.4x the throughput on the local store. With the
+server, throughput is 12x and mean latency at 50 concurrent calls drops
+from about 3 s to about 0.25 s. With one caller the gain is smaller (local:
+62 → 22 ms; server: 8 ms), because the queue was the problem, not a single
+search.
+
+**Not yet shown.** These numbers isolate the vector store in a sandbox. The
+end-to-end effect on the served API (BGE-M3 on GPU, vLLM, 50 Locust users)
+needs the Kaggle run, `notebooks/kaggle_load_test_qdrant.ipynb`. It runs
+50 users twice, local and server, each with a fresh API, so the per-stage
+histograms don't mix runs (they did in the first load test, which included
+the 1-user run). Embedding batching is left until that run shows how much of
+the remaining retrieval time is the embedder.
+
+**Limits.** In one of about 15 server runs, one call failed with an
+`httpx` "Bad file descriptor" read error at 50 threads; it did not repeat in
+13 further runs, including 200 threads. The client doesn't retry, so in the
+API that request would fail. The server needs its own container or process,
+and its data has to be re-seeded with `--recreate` when `dvc repro` rebuilds
+the index with the same point count.
+
 ## Next steps (not done, in priority order)
 
-1. **Fix the retrieval bottleneck.** Under 50 users, retrieval is 38% of
-   request time. Run Qdrant as a server instead of the in-process client,
-   and batch query embeddings.
+1. **Confirm the retrieval fix end to end.** Twin-by-ID and the optional
+   Qdrant server are done and benchmarked (section above). Run
+   `notebooks/kaggle_load_test_qdrant.ipynb` to measure the served API at
+   50 users. Then decide on batching query embeddings.
 2. **Refuse below the drift cut-off.** The 0.646 corpus cut-off from the
    drift check could also decline a single question. 2 of 6 out-of-corpus
    questions were answered instead of declined. This needs its own

@@ -430,9 +430,25 @@ think time (`load_test/locustfile.py`, `notebooks/kaggle_load_test.ipynb`):
 | 50 | 1,692 | 0 | 5.65 req/s | 7.0 s | 12.0 s | 15.0 s |
 
 No failures. It saturates at about 5.7 requests/s; under load, retrieval
-takes 38% of the time, which is the first thing to fix. Reports:
-`reports/locust_u50.html`, `reports/load_test.md`; analysis in
-`docs/decisions.md`.
+takes 38% of the time. Reports: `reports/locust_u50.html`,
+`reports/load_test.md`; analysis in `docs/decisions.md`.
+
+**Retrieval under load.** Benchmarking the vector store alone
+(`scripts/retrieval_bench.py`) showed that local Qdrant filters in Python
+and serves one request at a time: about 15 retrievals/s, about 3 s of
+queueing at 50 concurrent calls. Two fixes:
+
+- the same-language copy of an article is fetched by its ID instead of by a
+  filtered scan (2.4x throughput on the local store);
+- an optional Qdrant server with payload indexes (12x throughput, about
+  0.25 s at 50 concurrent calls).
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.qdrant.yml up -d   # API + Qdrant server
+python scripts/retrieval_bench.py --url http://localhost:6333            # benchmark against it
+```
+
+The end-to-end check at 50 users is `notebooks/kaggle_load_test_qdrant.ipynb`.
 
 ## Query drift
 
@@ -462,6 +478,7 @@ green. The full reasoning, including what didn't work, is in
 | 1 · Data and retrieval | PDF → 1149 validated articles (bilingual column splitting, repealed ranges); article-level chunking; BGE-M3 + Qdrant; query engine with exact article lookup and citation-only sources; FastAPI `/ask` + `/health` with Pydantic; Docker |
 | 2 · MLOps foundation | DVC pipeline with a Google Drive remote; GitHub Actions (lint → test → `dvc repro` → image to GHCR); 54-question evaluation set; first RAGAS attempt on CPU (failed, documented) |
 | 3 · Serving | Batch re-indexing of new laws; PII redaction (Egyptian ID, phone, IBAN, card, email) in questions and answers; canary rollout with nginx and promotion gates; BentoML service |
-| 4 · Observability | Langfuse tracing (no raw PII in traces); Prometheus metrics, Grafana dashboard, alert rules delivered through Alertmanager; streaming (`/ask/stream`) with PII-safe incremental redaction; Arabic lam-alef extraction fix |
+| 4 · Observability | Langfuse tracing (no raw PII in traces); Prometheus metrics, Grafana dashboard, alert rules; streaming (`/ask/stream`) with PII-safe incremental redaction; Arabic lam-alef extraction fix |
 | 5 · GPU evaluation and optimization | vLLM + Qwen3-8B on Kaggle; RAGAS on 54 questions; MLflow 5-config sweep and registry; CI RAGAS gate with staleness check; evaluation fixes (repeal-flag data bug, same-language retrieval, judge context, refusal scoring); AWQ 4-bit; Locust at 50 users; query-drift check |
 | 6 · Review readiness | Public image, 3-command setup without DVC, peer review guide and issue template, repealed-range fix found in the reviewer dry run, architecture diagram |
+| 7 · After submission | Alerts delivered through Alertmanager; drift alert switched to the off-corpus share; retrieval bottleneck measured, same-language lookup by ID, optional Qdrant server |
