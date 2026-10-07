@@ -173,10 +173,8 @@ discovering them; spend it on what I *haven't* noticed.
   Qwen3-8B. GPU serving was measured on Kaggle, not packaged as a
   container.
 - The DVC remote is a personal Google Drive, so reviewers can't `dvc pull`.
-  CI proves reproducibility instead. The Drive login CI uses expires every
-  7 days (the Google app is in Testing mode), so a CI run can fail at
-  `dvc pull` until I renew it. That is a credentials problem, not a code
-  one.
+  CI proves reproducibility instead, reading the remote with a read-only
+  service account.
 - Alerts go to a local webhook that logs them, not to email or Slack.
 - 2 of 6 out-of-corpus questions were answered instead of declined.
 - The generator and the RAGAS judge are the same model family (Qwen3-8B).

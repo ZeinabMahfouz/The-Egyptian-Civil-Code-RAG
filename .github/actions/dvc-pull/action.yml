@@ -1,0 +1,57 @@
+name: DVC pull from Google Drive
+description: >-
+  Pulls DVC-tracked data from the Google Drive remote. Prefers a read-only
+  service account (never expires); falls back to the personal OAuth token
+  (expires after 7 days while the OAuth app is in Testing mode).
+  See docs/decisions.md, "CI Drive access".
+
+inputs:
+  service-account-json:
+    description: Service-account JSON key (secret GDRIVE_SA_JSON). Needs Viewer access to the DVC folder.
+    required: false
+    default: ""
+  client-id:
+    description: OAuth client ID (secret GDRIVE_CLIENT_ID), fallback only
+    required: false
+    default: ""
+  client-secret:
+    description: OAuth client secret (secret GDRIVE_CLIENT_SECRET), fallback only
+    required: false
+    default: ""
+  user-credentials:
+    description: OAuth token JSON (secret GDRIVE_USER_CREDENTIALS), fallback only
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    # One step on purpose: the key is passed straight to `dvc pull` and is
+    # never written to $GITHUB_ENV (which later steps' logs can display) or
+    # to disk.
+    - name: DVC pull
+      shell: bash
+      env:
+        SA_JSON: ${{ inputs.service-account-json }}
+        CLIENT_ID: ${{ inputs.client-id }}
+        CLIENT_SECRET: ${{ inputs.client-secret }}
+        USER_CREDENTIALS: ${{ inputs.user-credentials }}
+      run: |
+        if [ -n "$SA_JSON" ]; then
+          # Read-only use: a service account can't upload to a personal
+          # Drive ("no storage quota"), but it can read a folder shared
+          # with it. CI only pulls, so that's enough.
+          echo "DVC remote: service account"
+          dvc remote modify --local gdrive-storage gdrive_use_service_account true
+          GDRIVE_CREDENTIALS_DATA="$SA_JSON" dvc pull
+        elif [ -n "$USER_CREDENTIALS" ]; then
+          echo "::warning::DVC remote: personal OAuth token (expires every 7 days). Add the GDRIVE_SA_JSON secret to stop that."
+          dvc remote modify --local gdrive-storage gdrive_client_id "$CLIENT_ID"
+          dvc remote modify --local gdrive-storage gdrive_client_secret "$CLIENT_SECRET"
+          mkdir -p ~/.cache/pydrive2fs/"$CLIENT_ID"
+          echo "$USER_CREDENTIALS" > ~/.cache/pydrive2fs/"$CLIENT_ID"/default.json
+          dvc pull
+        else
+          echo "::error::No Google Drive credentials: set the GDRIVE_SA_JSON secret (docs/decisions.md, CI Drive access)."
+          exit 1
+        fi
