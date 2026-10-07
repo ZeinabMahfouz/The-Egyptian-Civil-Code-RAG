@@ -1418,6 +1418,42 @@ API that request would fail. The server needs its own container or process,
 and its data has to be re-seeded with `--recreate` when `dvc repro` rebuilds
 the index with the same point count.
 
+## CI Drive access: a read-only service account
+
+**Problem.** CI pulled DVC data with a personal OAuth token. The Google
+OAuth app is in Testing mode (publishing it was blocked in the console), so
+its refresh token expires every 7 days. Every week CI failed at `dvc pull`
+with `invalid_grant` until the token was renewed by hand
+(`gdrive_login.py`, then the `GDRIVE_USER_CREDENTIALS` secret).
+
+**Why a service account works now, though it was rejected before.** The
+earlier attempt (section "DVC remote") failed on `dvc push`: a service
+account has no storage quota, so it can't create files in a personal Drive.
+CI never pushes; it only pulls. Reading a folder shared with the service
+account needs no quota. So:
+
+- **CI** reads with a service account that has *Viewer* access to the DVC
+  folder. Its key doesn't expire.
+- **Pushing** stays on the developer's laptop with the personal OAuth
+  login, unchanged.
+
+**How.** `.github/actions/dvc-pull` (one composite step, used by all three
+jobs instead of three copies of the setup) sets
+`gdrive_use_service_account` and passes the key from the `GDRIVE_SA_JSON`
+secret to `dvc pull` through `GDRIVE_CREDENTIALS_DATA`, which dvc-gdrive
+reads. The key is never written to disk or to `$GITHUB_ENV`, whose
+values can appear in later steps' logs (the repo is public). Without that
+secret it falls back to the OAuth token, with a warning in the run, so CI
+kept working during the switch.
+
+**Least privilege.** Viewer, not Editor: CI can't change or delete the
+remote. The key is only in the GitHub secret, not in the repo or the
+image.
+
+**Limits.** The service account key is long-lived: if it leaks it works
+until revoked (Google Cloud → IAM → Service accounts → Keys). Rotate it
+yearly. Pushing from a new machine still needs the personal login.
+
 ## Next steps (not done, in priority order)
 
 1. **Generation capacity.** After the retrieval fix (2.45 s → 0.13 s at
@@ -1436,9 +1472,5 @@ the index with the same point count.
    and not only the 54-question set.
 5. **Trend in MLflow.** Plot gated RAGAS metrics across evaluation runs, so
    slow regressions show before they cross the gate.
-6. **CI access to the DVC remote.** The Google OAuth app is in Testing, so
-   its refresh token expires every 7 days and `dvc pull` in CI fails until
-   it is renewed. A service account, or a published OAuth app, removes the
-   manual step.
-7. **Package GPU serving.** The container runs the CPU model. A vLLM image
+6. **Package GPU serving.** The container runs the CPU model. A vLLM image
    with the AWQ model would match what was evaluated.
