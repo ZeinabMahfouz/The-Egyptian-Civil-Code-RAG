@@ -1454,6 +1454,41 @@ image.
 until revoked (Google Cloud → IAM → Service accounts → Keys). Rotate it
 yearly. Pushing from a new machine still needs the personal login.
 
+## Refusal gate: decline before the LLM when nothing indexed is close
+
+**Problem.** The main remaining hallucination risk: in the full evaluation,
+2 of 6 out-of-corpus questions were answered instead of declined. The
+prompt tells the model to decline, but Qwen3-8B sometimes answers from
+general knowledge. For a legal assistant, a confident answer about the
+wrong law is the worst failure.
+
+**Decision.** A check on retrieval, before generation:
+`RAGQueryEngine.should_refuse` declines when the best match among the
+indexed articles is below `refusal.min_score` (`params.yaml`). The pipeline
+then returns a fixed refusal in the question's language, with no sources,
+and the LLM is never called. A prompt can be talked around; a similarity
+threshold can't. The same signal already drives the drift alert, which
+flags *windows* of such questions; the gate acts on *one* question.
+
+- **Exemption:** a question that names an article found in the index
+  ("What does Article 147 say?") is never refused, however it is phrased.
+  Article 1 of another law doesn't count for a Civil Code question.
+- **Where:** in the shared pipeline, so FastAPI, `/ask/stream` and BentoML
+  all get it. Refused requests are their own metric status
+  (`rag_requests_total{status="refused"}`) and are flagged in the Langfuse
+  retrieve span.
+- **Off by default** (`min_score: null`) until calibrated on the real
+  index.
+
+**Calibration** (`scripts/refusal_calibration.py`, retrieval only, CPU):
+the threshold is chosen on the evaluation set (48 in-corpus, 6
+out-of-corpus) as just below its lowest-scoring in-corpus question, so
+no question the system should answer is refused there. It is then checked
+on questions it never saw: the drift windows (16 in-corpus, 32
+out-of-corpus). The drift cut-off (0.646) is in the table for comparison:
+it was set at the 5th percentile of in-corpus scores, so it would refuse
+about 1 in 20 valid questions by design.
+
 ## Next steps (not done, in priority order)
 
 1. **Generation capacity.** After the retrieval fix (2.45 s → 0.13 s at
@@ -1461,16 +1496,12 @@ yearly. Pushing from a new machine still needs the personal login.
    larger one, vLLM's prefix caching for the shared prompt header, or
    shorter answers (a lower `max_tokens`). Measure each against the
    RAGAS gate, since shorter answers can lose citations.
-2. **Refuse below the drift cut-off.** The 0.646 corpus cut-off from the
-   drift check could also decline a single question. 2 of 6 out-of-corpus
-   questions were answered instead of declined. This needs its own
-   evaluation, because it also declines some valid questions.
-3. **Re-ranker** (e.g. BGE reranker) over the top-k. Check it against the
+2. **Re-ranker** (e.g. BGE reranker) over the top-k. Check it against the
    RAGAS gate, not by eye.
-4. **RAGAS on live traffic.** Score a sample of Langfuse traces and attach
+3. **RAGAS on live traffic.** Score a sample of Langfuse traces and attach
    the scores to the traces, so faithfulness is measured on real questions
    and not only the 54-question set.
-5. **Trend in MLflow.** Plot gated RAGAS metrics across evaluation runs, so
+4. **Trend in MLflow.** Plot gated RAGAS metrics across evaluation runs, so
    slow regressions show before they cross the gate.
-6. **Package GPU serving.** The container runs the CPU model. A vLLM image
+5. **Package GPU serving.** The container runs the CPU model. A vLLM image
    with the AWQ model would match what was evaluated.

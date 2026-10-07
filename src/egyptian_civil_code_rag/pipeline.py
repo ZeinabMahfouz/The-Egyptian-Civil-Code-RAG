@@ -28,6 +28,8 @@ from langfuse import Langfuse, propagate_attributes
 
 from egyptian_civil_code_rag import metrics
 from egyptian_civil_code_rag.pii import PIIGuard, StreamingRedactor
+from egyptian_civil_code_rag.query import question_language
+from egyptian_civil_code_rag.refusal import gate_refusal
 
 NO_CONTEXT_ANSWER = "No relevant articles found."
 
@@ -51,6 +53,7 @@ class AskResult:
     pii_redacted: list[str]
     trace_id: str | None
     usage: dict | None  # {"input": n, "output": m} tokens, when the backend reports it
+    refused: bool = False  # declined by the refusal gate, before generation
 
 
 class TracedPipeline:
@@ -73,7 +76,7 @@ class TracedPipeline:
         finally:
             metrics.LATENCY.labels(self.service, "total").observe(time.perf_counter() - started)
 
-        status = "ok" if result.sources else "no_context"
+        status = "refused" if result.refused else ("ok" if result.sources else "no_context")
         metrics.REQUESTS.labels(self.service, status).inc()
         if result.usage:
             for direction in ("input", "output"):
@@ -123,7 +126,10 @@ class TracedPipeline:
                         metrics.RETRIEVAL_TOP_SCORE.labels(self.service).observe(
                             max(float(h.score) for h in hits)
                         )
+                    should_refuse = getattr(self.engine, "should_refuse", None)
+                    refused = bool(should_refuse and should_refuse(clean_question, hits))
                     r.update(
+                        metadata={"refused": refused},
                         output=[
                             {
                                 "citation": h.payload["citation"],
@@ -132,13 +138,18 @@ class TracedPipeline:
                                 "score": round(float(h.score), 4),
                             }
                             for h in hits
-                        ]
+                        ],
                     )
-                sources = [h.payload["citation"] for h in hits]
+                sources = [] if refused else [h.payload["citation"] for h in hits]
 
                 usage = None
-                if not hits:
-                    raw_answer = NO_CONTEXT_ANSWER
+                if not hits or refused:
+                    # No LLM call: nothing indexed is close enough to answer from.
+                    raw_answer = (
+                        gate_refusal(question_language(clean_question))
+                        if refused
+                        else NO_CONTEXT_ANSWER
+                    )
                     answer, a_found = self.pii(raw_answer)
                     emit(answer)
                 else:
@@ -189,4 +200,4 @@ class TracedPipeline:
                 )
                 trace_id = root.trace_id
 
-        return AskResult(answer, sources, pii_redacted, trace_id, usage)
+        return AskResult(answer, sources, pii_redacted, trace_id, usage, refused)

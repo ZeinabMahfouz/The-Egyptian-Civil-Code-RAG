@@ -19,6 +19,22 @@ RE_REFUSAL = re.compile(
 )
 
 
+# What the API answers when the refusal gate declines a question before the
+# LLM sees it (query.RAGQueryEngine.should_refuse). Worded so is_refusal()
+# recognises it, in the question's language.
+GATE_REFUSAL = {
+    "en": (
+        "The Egyptian Civil Code articles available to me do not cover this question, "
+        "so I cannot answer it."
+    ),
+    "ar": "لا تتناول مواد القانون المدني المصري المتاحة لي هذا السؤال، لذلك لا يمكنني الإجابة عنه.",
+}
+
+
+def gate_refusal(lang: str) -> str:
+    return GATE_REFUSAL.get(lang, GATE_REFUSAL["en"])
+
+
 def is_refusal(answer: str) -> bool:
     return bool(RE_REFUSAL.search(answer or ""))
 
