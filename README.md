@@ -18,7 +18,7 @@ MLOps course.
 | Answer quality (RAGAS, 54 questions, Qwen3-8B) | faithfulness **0.896**, context precision 0.908, recall 0.854 | [GPU evaluation](#gpu-evaluation-kaggle-vllm-ragas-mlflow) |
 | Out-of-scope questions declined | 6 of 6 (plus a refusal gate before the LLM) | [Refusal gate](#refusal-gate) |
 | AWQ 4-bit vs fp16 | no quality loss (−0.002), **2.7× faster**, 2.7× less memory | [Quantization](#quantization-awq-4-bit) |
-| Load, 50 concurrent users | 1,692 requests, **0 failures**, p95 12.0 s | [Load test](#load-test-locust-50-users) |
+| Load, 50 concurrent users | 2,186 requests, **0 failures**, 7.30 req/s, p50 4.6 s; retrieval 0.13 s (was 2.45 s) | [Load test](#load-test-locust-50-users) |
 | Query drift | other-jurisdiction and off-topic questions flagged, normal ones not | [Query drift](#query-drift) |
 | CI quality gate | faithfulness 0.868 ≥ 0.75 on the CI subset: **PASS** | [CI gate](#gpu-evaluation-kaggle-vllm-ragas-mlflow) |
 
@@ -58,11 +58,15 @@ evaluated configuration is Qwen3-8B on vLLM (see "What runs where" in
    emails from the question, before anything is logged or traced.
 2. `query.py` retrieves: if the question names an article ("Article 147",
    "المادة ١٤٧"), an exact lookup; otherwise semantic search with BGE-M3 in
-   Qdrant, deduplicated to the top 3 articles, in the question's language.
-3. The prompt lists each article with its citation and repeal status, and
+   Qdrant (embedded, or a Qdrant server with `QDRANT_URL`), deduplicated to
+   the top 3 articles, in the question's language.
+3. The refusal gate: if nothing indexed is close to the question (best
+   match below 0.47) and it names no indexed article, the API declines here,
+   without calling the model.
+4. The prompt lists each article with its citation and repeal status, and
    states explicitly when a named article falls inside a repealed range.
-4. The model (vLLM, or the CPU fallback) answers only from those articles.
-5. The answer is redacted again, and the response carries `sources`
+5. The model (vLLM, or the CPU fallback) answers only from those articles.
+6. The answer is redacted again, and the response carries `sources`
    (citations) and `pii_redacted`. Every step is a Langfuse span and a
    Prometheus metric (`pipeline.py`).
 
@@ -71,15 +75,18 @@ evaluated configuration is Qwen3-8B on vLLM (see "What runs where" in
 ```
 src/egyptian_civil_code_rag/   the package (pip install -e .): api.py, service.py (BentoML),
                                pipeline.py, query.py, backends.py (vLLM / CPU), pii.py,
-                               metrics.py, refusal.py
+                               metrics.py, refusal.py, ids.py, qdrant_seed.py (Qdrant server)
 scripts/                       data pipeline (extract, chunk, embed, re-index) and
-                               evaluation (gpu_eval, quant_compare, embedding_drift, ragas_gate)
+                               evaluation (gpu_eval, quant_compare, embedding_drift, ragas_gate,
+                               refusal_calibration, retrieval_bench)
 tests/                         pytest suite; tests/eval/ holds the 54 evaluation questions
 data/                          DVC-tracked: raw PDF, interim JSON, Qdrant index; documents/
-notebooks/                     Kaggle GPU notebooks: evaluation, quantization, load test
+notebooks/                     Kaggle GPU notebooks: evaluation, quantization, load tests
 load_test/                     Locust load test
 deploy/                        canary rollout (nginx), monitoring (Prometheus, Grafana, Alertmanager)
-reports/                       results: RAGAS, MLflow screenshots, quantization, Locust, drift
+reports/                       results: RAGAS, MLflow screenshots, quantization, Locust, drift,
+                               refusal calibration
+docker-compose.qdrant.yml      optional: serve retrieval from a Qdrant server
 docs/decisions.md              every design decision, failure and result, with numbers
 dvc.yaml · params.yaml         pipeline stages and parameters
 ```
@@ -430,7 +437,7 @@ think time (`load_test/locustfile.py`, `notebooks/kaggle_load_test.ipynb`):
 | 50 | 1,692 | 0 | 5.65 req/s | 7.0 s | 12.0 s | 15.0 s |
 
 No failures. It saturates at about 5.7 requests/s; under load, retrieval
-takes 38% of the time. Reports: `reports/locust_u50.html`,
+took 38% of the time, which the fix below removed. Reports: `reports/locust_u50.html`,
 `reports/load_test.md`; analysis in `docs/decisions.md`.
 
 **Retrieval under load.** Benchmarking the vector store alone
