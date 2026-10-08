@@ -167,3 +167,14 @@ def test_params_ship_with_the_gate_set_or_explicitly_off():
     params = yaml.safe_load((REPO / "params.yaml").read_text(encoding="utf-8"))
     min_score = params["refusal"]["min_score"]
     assert min_score is None or 0 < min_score < 1
+
+
+def test_article_5000_refusals_are_recognised():
+    # The two answers that were miscounted as "answered" in the GPU evaluation
+    assert is_refusal(
+        "The provided articles do not include Article 5000. Therefore, it is not "
+        "possible to answer what Article 5000 says."
+    )
+    assert is_refusal("المادة 5000 ليست موجودة في القائمة المقدمة من مواد القانون المدني المصري.")
+    # an ordinary answer still isn't one
+    assert not is_refusal("Article 147: the contract makes the law of the parties.")

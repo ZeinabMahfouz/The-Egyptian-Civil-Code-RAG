@@ -20,7 +20,8 @@
     "judge": "Qwen/Qwen3-8B",
     "n_questions": 54,
     "registered": "civil-code-rag-chunking v1 @production",
-    "evaluated_at": "2026-10-01T12:34:29Z"
+    "evaluated_at": "2026-10-01T12:34:29Z",
+    "rescored": "2026-10: refusal_rate recomputed from the stored answers after a refusal-pattern fix (refusal.py); no answers or RAGAS scores changed"
   },
   "aggregate": {
     "faithfulness": 0.8955420466058763,
@@ -31,7 +32,7 @@
     "context_recall_n_scored": 48,
     "answer_relevancy": 0.7064285344473801,
     "answer_relevancy_n_scored": 48,
-    "refusal_rate": 0.6666666666666666,
+    "refusal_rate": 1.0,
     "false_refusal_rate": 0.020833333333333332,
     "article_hit_rate": 0.9166666666666666
   },

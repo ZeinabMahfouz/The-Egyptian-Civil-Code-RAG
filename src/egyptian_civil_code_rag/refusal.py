@@ -14,7 +14,11 @@ OUT_OF_CORPUS = "out_of_corpus"
 RE_REFUSAL = re.compile(
     r"no relevant articles|do(?:es)? not contain|not covered|cannot answer|"
     r"not (?:enough|sufficient) information|insufficient information|"
-    r"لا تحتوي|لا تتضمن|لا توجد معلومات|لا يتناول|لا تتناول|لا يعالج|لا يُعالج|غير كافية",
+    # "The provided articles do not include Article 5000" (missed until Oct 2026,
+    # which made two correct refusals count as answers)
+    r"do(?:es)? not include|not possible to answer|"
+    r"لا تحتوي|لا تتضمن|لا توجد معلومات|لا يتناول|لا تتناول|لا يعالج|لا يُعالج|غير كافية|"
+    r"ليست موجودة|غير موجودة",
     re.I,
 )
 

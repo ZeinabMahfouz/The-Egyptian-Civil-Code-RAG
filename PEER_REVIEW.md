@@ -154,7 +154,8 @@ check it.
   p95 12.0 s
 - Query drift: questions from other jurisdictions and off-topic ones flagged
   (16 of 16 below the cut-off); new Civil Code questions not flagged
-- Out-of-corpus questions declined: 4 of 6 (the main remaining risk)
+- Out-of-corpus questions declined: 6 of 6, plus a refusal gate that declines
+  off-topic questions before the LLM sees them
 - AWQ 4-bit vs fp16: faithfulness 0.888 vs 0.886 (no loss); latency p50
   1.06 s vs 2.81 s; weights 2.85 vs 7.64 GiB per GPU
 
@@ -176,11 +177,10 @@ discovering them; spend it on what I *haven't* noticed.
   CI proves reproducibility instead, reading the remote with a read-only
   service account.
 - Alerts go to a local webhook that logs them, not to email or Slack.
-- 2 of 6 out-of-corpus questions were answered instead of declined.
 - The generator and the RAGAS judge are the same model family (Qwen3-8B).
-- Under 50 users, retrieval takes 38% of request time (2.45 s on average);
-  the likely cause (local Qdrant client and embedder serializing inside the
-  API process) is in `docs/decisions.md`. Not fixed yet.
+- The refusal gate's threshold (0.47) sits close to the lowest-scoring
+  valid questions (questions about repealed ranges, 0.477): an unseen
+  question of that kind could be refused.
 - The drift check runs on hand-written query windows that simulate drift,
   not on logged production traffic.
 

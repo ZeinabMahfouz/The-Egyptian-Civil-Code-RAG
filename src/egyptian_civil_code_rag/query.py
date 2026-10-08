@@ -213,9 +213,10 @@ class RAGQueryEngine:
         """Decline before generation when nothing indexed is close to the
         question: the best match's similarity is below refusal_min_score.
 
-        The prompt already tells the model to decline, but the 8B model
-        answered 2 of 6 out-of-corpus questions from general knowledge. A
-        check on retrieval can't be talked out of it.
+        The prompt already tells the model to decline, and Qwen3-8B did on
+        all 6 out-of-corpus evaluation questions -- but a prompt can be talked
+        around, a similarity check can't, and a refused question costs no
+        GPU time.
 
         Never refuses a question that names an article found in the index
         ("What does Article 147 say?"): those are answered from that article

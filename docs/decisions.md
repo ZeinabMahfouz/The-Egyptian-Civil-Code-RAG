@@ -1051,12 +1051,12 @@ answers, 0.044 is less than one answer's difference.
 | Context precision | 0.908 |
 | Context recall | 0.854 |
 | Article hit rate | 0.917 |
-| Refusal rate (out-of-corpus declined) | 0.667 (4 of 6) |
+| Refusal rate (out-of-corpus declined) | 1.000 (6 of 6; 4 of 6 before a scoring fix, see Refusal gate) |
 | False refusal rate (in-corpus wrongly declined) | 0.021 (1 of 48) |
 
 Answer relevancy and the per-question scores are in
 `reports/ragas_results.json`. The CI gate on the same report: faithfulness
-**0.868** on the CI subset (threshold 0.75), 3 of 4 out-of-corpus questions
+**0.868** on the CI subset (threshold 0.75), 4 of 4 out-of-corpus questions
 declined: **PASS**.
 
 **Before vs after the fixes** (baseline-700, CI subset): faithfulness
@@ -1066,9 +1066,9 @@ language) and two measurement errors (judge context, refusal scoring), not
 from tuning. See the previous section.
 
 **Known limits.**
-- 2 of 6 out-of-corpus questions were answered instead of declined in the
-  full run. The prompt says to decline, but the 8B model sometimes answers
-  from general knowledge. This is the main remaining hallucination risk.
+- ~~2 of 6 out-of-corpus questions were answered instead of declined.~~
+  Corrected later: the model declined all 6; the refusal pattern missed
+  "do not include" (see Refusal gate).
 - Generator and judge are the same model. A model judging its own answers
   may be lenient; a different judge would be a stronger check.
 - One faithfulness score per sweep config is missing: the judge hit its
@@ -1099,7 +1099,7 @@ run was: AWQ answers → stop → fp16 answers → fp16 judges both.
 | Faithfulness | 0.886 | 0.888 | drop −0.002 (limit 0.03): **PASS** |
 | Context precision / recall | 0.908 / 0.854 | 0.917 / 0.854 | same retrieval |
 | Answer relevancy | 0.701 | 0.706 | |
-| Out-of-corpus declined | 4 of 6 | 4 of 6 | |
+| Out-of-corpus declined | 4 of 6* | 4 of 6* | *scored with the refusal pattern that missed "do not include" (see Refusal gate) |
 | Latency p50 / p95 (one user) | 2.81 s / 9.42 s | **1.06 s / 2.51 s** | 2.7x / 3.8x faster |
 | Time to first token p50 | 0.24 s | 0.17 s | |
 | Decode speed p50 | 18 tok/s | **55 tok/s** | 3.0x |
@@ -1456,38 +1456,65 @@ yearly. Pushing from a new machine still needs the personal login.
 
 ## Refusal gate: decline before the LLM when nothing indexed is close
 
-**Problem.** The main remaining hallucination risk: in the full evaluation,
-2 of 6 out-of-corpus questions were answered instead of declined. The
-prompt tells the model to decline, but Qwen3-8B sometimes answers from
-general knowledge. For a legal assistant, a confident answer about the
-wrong law is the worst failure.
+**Problem, as first stated.** "2 of 6 out-of-corpus questions were answered
+instead of declined" -- the main hallucination risk in every summary.
 
-**Decision.** A check on retrieval, before generation:
+**What it actually was: a scoring bug.** Reading the two answers: both were
+"What does Article 5000 say?" (English and Arabic), and the model had
+declined both: *"The provided articles do not include Article 5000.
+Therefore, it is not possible to answer..."* and *"المادة 5000 ليست موجودة
+..."*. The refusal pattern (`refusal.py`) knew "do not contain" but not "do
+not include" or "ليست موجودة". With the pattern fixed and the stored
+answers re-scored (no new generation): **6 of 6 declined** on the full
+set, 4 of 4 on the CI subset; no in-corpus answer newly counts as a
+refusal (still 1 of 48). `reports/ragas_results.json` has the re-scored
+`refusal_rate`, marked in its `meta`. The quantization table's "4 of 6"
+used the same pattern and is very likely the same two answers.
+
+**Still worth a gate.** A prompt can be talked around; a similarity check
+can't, and a refused question costs no GPU time.
 `RAGQueryEngine.should_refuse` declines when the best match among the
-indexed articles is below `refusal.min_score` (`params.yaml`). The pipeline
-then returns a fixed refusal in the question's language, with no sources,
-and the LLM is never called. A prompt can be talked around; a similarity
-threshold can't. The same signal already drives the drift alert, which
-flags *windows* of such questions; the gate acts on *one* question.
+indexed articles is below `refusal.min_score` (`params.yaml`); the
+pipeline then returns a fixed refusal in the question's language with no
+sources, and the LLM is never called.
 
-- **Exemption:** a question that names an article found in the index
-  ("What does Article 147 say?") is never refused, however it is phrased.
-  Article 1 of another law doesn't count for a Civil Code question.
+- **Exemption:** a question naming an article found in the index ("What
+  does Article 147 say?") is never refused. Article 1 of another law
+  doesn't count for a Civil Code question.
 - **Where:** in the shared pipeline, so FastAPI, `/ask/stream` and BentoML
-  all get it. Refused requests are their own metric status
-  (`rag_requests_total{status="refused"}`) and are flagged in the Langfuse
-  retrieve span.
-- **Off by default** (`min_score: null`) until calibrated on the real
-  index.
+  all get it. Counted as `rag_requests_total{status="refused"}`, flagged in
+  the Langfuse retrieve span.
 
-**Calibration** (`scripts/refusal_calibration.py`, retrieval only, CPU):
-the threshold is chosen on the evaluation set (48 in-corpus, 6
-out-of-corpus) as just below its lowest-scoring in-corpus question, so
-no question the system should answer is refused there. It is then checked
-on questions it never saw: the drift windows (16 in-corpus, 32
-out-of-corpus). The drift cut-off (0.646) is in the table for comparison:
-it was set at the 5th percentile of in-corpus scores, so it would refuse
-about 1 in 20 valid questions by design.
+**Calibration** (`scripts/refusal_calibration.py`, retrieval only, real
+index, laptop CPU; `reports/refusal_calibration.md`). Chosen on the
+evaluation set, checked on the drift windows it never saw:
+
+| Threshold | Tune: out-of-scope refused | Tune: valid refused | Check: out-of-scope refused | Check: valid refused |
+|---|---|---|---|---|
+| **0.47 (chosen)** | 2 of 6 | **0 of 48** | 15 of 32 | **0 of 16** |
+| 0.55 | 3 of 6 | 4 of 48 | 28 of 32 | 0 of 16 |
+| 0.60 | 5 of 6 | 6 of 48 | 30 of 32 | 1 of 16 |
+| 0.646 (drift cut-off) | 6 of 6 | 7 of 48 | 32 of 32 | 2 of 16 |
+| 0.70 | 6 of 6 | 17 of 48 | 32 of 32 | 11 of 16 |
+
+- **The two groups overlap.** Off-topic questions that mention Egypt score
+  high ("What is the capital of Egypt?" 0.574; criminal-law theft 0.621),
+  while some valid questions score low.
+- **The low valid questions are about repealed ranges** ("Is the law about
+  associations still in force?" 0.477; Articles 389-417, 0.496). A repealed
+  range is indexed as one short chunk, so it matches weakly. They are not
+  an Arabic-vs-English effect: the two lowest are English.
+- **So the threshold is set to refuse no valid question:** 0.47, just below
+  the lowest one. It declines about half of the clearly off-topic questions
+  before the LLM; the prompt handles the rest. A higher threshold would
+  catch more off-topic questions but answer "I can't answer" to "Is Article
+  400 repealed?", which is wrong in its own way.
+
+**Limits.** The margin is small (0.47 vs 0.477): an unseen question about a
+repealed range could be refused. Raising those questions' similarity --
+indexing a repealed range with its subject ("Associations, Articles 54-80:
+repealed") instead of the bare notice -- would let the threshold rise; that
+is an index change, so it needs `dvc repro` and a new GPU evaluation.
 
 ## Next steps (not done, in priority order)
 
