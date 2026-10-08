@@ -10,6 +10,7 @@ from qdrant_client.models import FieldCondition, Filter, MatchAny, MatchValue
 from sentence_transformers import SentenceTransformer
 
 from egyptian_civil_code_rag.ids import CIVIL_CODE_DOC_ID, point_id
+from egyptian_civil_code_rag.refusal import gate_refusal
 
 DEFAULT_TOP_K_RAW = 8  # raw Qdrant hits fetched before dedup
 DEFAULT_TOP_K_DISTINCT = 3  # distinct articles kept as context after dedup
@@ -94,6 +95,9 @@ class RAGQueryEngine:
         self.client = client or make_qdrant_client(params["qdrant"]["storage_path"])
         self.collection = collection or params["qdrant"]["collection_name"]
         self.generate_fn = generate_fn
+        # Refusal gate (should_refuse): None = off. Calibrated with
+        # scripts/refusal_calibration.py, see docs/decisions.md.
+        self.refusal_min_score = (params.get("refusal") or {}).get("min_score")
         self._check_index_has_doc_ids()
 
     def _check_index_has_doc_ids(self):
@@ -205,6 +209,30 @@ class RAGQueryEngine:
                 break
         return distinct
 
+    def should_refuse(self, question: str, hits) -> bool:
+        """Decline before generation when nothing indexed is close to the
+        question: the best match's similarity is below refusal_min_score.
+
+        The prompt already tells the model to decline, and Qwen3-8B did on
+        all 6 out-of-corpus evaluation questions -- but a prompt can be talked
+        around, a similarity check can't, and a refused question costs no
+        GPU time.
+
+        Never refuses a question that names an article found in the index
+        ("What does Article 147 say?"): those are answered from that article
+        however the rest is phrased."""
+        min_score = getattr(self, "refusal_min_score", None)
+        if min_score is None or not hits:
+            return False
+        referenced = set(extract_referenced_article_numbers(question))
+        if referenced and any(
+            referenced & set(h.payload.get("article_numbers") or [])
+            and h.payload.get("doc_id", CIVIL_CODE_DOC_ID) == CIVIL_CODE_DOC_ID
+            for h in hits
+        ):
+            return False
+        return max(float(h.score) for h in hits) < min_score
+
     def build_prompt(self, question: str, context_hits):
         context = "\n\n".join(format_context(hit.payload, question) for hit in context_hits)
 
@@ -228,6 +256,8 @@ Answer (in the same language as the question, citing article numbers):"""
         context_hits = self.retrieve(question)
         if not context_hits:
             return {"answer": "No relevant articles found.", "sources": []}
+        if self.should_refuse(question, context_hits):
+            return {"answer": gate_refusal(question_language(question)), "sources": []}
 
         prompt = self.build_prompt(question, context_hits)
         raw_answer = self.generate_fn(prompt)

@@ -9,3 +9,9 @@ embedding:
 qdrant:
   collection_name: "egyptian_civil_code"
   storage_path: "data/processed/qdrant_storage"
+
+# Refusal gate (RAGQueryEngine.should_refuse): decline before generation when
+# the best match among the indexed articles is below min_score. null = off.
+# Calibrated with scripts/refusal_calibration.py (reports/refusal_calibration.md).
+refusal:
+  min_score: 0.47

@@ -1,0 +1,1015 @@
+{
+ "recommended": 0.472,
+ "thresholds": {
+  "recommended": {
+   "threshold": 0.472,
+   "tune": {
+    "in_corpus_refused": 0,
+    "in_corpus": 48,
+    "out_of_corpus_refused": 2,
+    "out_of_corpus": 6
+   },
+   "check": {
+    "in_corpus_refused": 0,
+    "in_corpus": 16,
+    "out_of_corpus_refused": 15,
+    "out_of_corpus": 32
+   }
+  },
+  "0.55": {
+   "threshold": 0.55,
+   "tune": {
+    "in_corpus_refused": 4,
+    "in_corpus": 48,
+    "out_of_corpus_refused": 3,
+    "out_of_corpus": 6
+   },
+   "check": {
+    "in_corpus_refused": 0,
+    "in_corpus": 16,
+    "out_of_corpus_refused": 28,
+    "out_of_corpus": 32
+   }
+  },
+  "0.60": {
+   "threshold": 0.6,
+   "tune": {
+    "in_corpus_refused": 6,
+    "in_corpus": 48,
+    "out_of_corpus_refused": 5,
+    "out_of_corpus": 6
+   },
+   "check": {
+    "in_corpus_refused": 1,
+    "in_corpus": 16,
+    "out_of_corpus_refused": 30,
+    "out_of_corpus": 32
+   }
+  },
+  "drift cut-off": {
+   "threshold": 0.646,
+   "tune": {
+    "in_corpus_refused": 7,
+    "in_corpus": 48,
+    "out_of_corpus_refused": 6,
+    "out_of_corpus": 6
+   },
+   "check": {
+    "in_corpus_refused": 2,
+    "in_corpus": 16,
+    "out_of_corpus_refused": 32,
+    "out_of_corpus": 32
+   }
+  },
+  "0.65": {
+   "threshold": 0.65,
+   "tune": {
+    "in_corpus_refused": 7,
+    "in_corpus": 48,
+    "out_of_corpus_refused": 6,
+    "out_of_corpus": 6
+   },
+   "check": {
+    "in_corpus_refused": 2,
+    "in_corpus": 16,
+    "out_of_corpus_refused": 32,
+    "out_of_corpus": 32
+   }
+  },
+  "0.70": {
+   "threshold": 0.7,
+   "tune": {
+    "in_corpus_refused": 17,
+    "in_corpus": 48,
+    "out_of_corpus_refused": 6,
+    "out_of_corpus": 6
+   },
+   "check": {
+    "in_corpus_refused": 11,
+    "in_corpus": 16,
+    "out_of_corpus_refused": 32,
+    "out_of_corpus": 32
+   }
+  }
+ },
+ "questions": [
+  {
+   "id": "s01_en",
+   "set": "tune",
+   "group": "substantive",
+   "question": "What happens if unforeseen exceptional circumstances make contract performance excessively burdensome for the debtor?",
+   "in_corpus": true,
+   "top_score": 0.687,
+   "exempt": false
+  },
+  {
+   "id": "s01_ar",
+   "set": "tune",
+   "group": "substantive",
+   "question": "ماذا يحدث إذا جعلت ظروف استثنائية غير متوقعة تنفيذ العقد مرهقاً للمدين؟",
+   "in_corpus": true,
+   "top_score": 0.6408,
+   "exempt": false
+  },
+  {
+   "id": "s02_en",
+   "set": "tune",
+   "group": "substantive",
+   "question": "In the absence of an applicable legal provision, what does the judge decide according to?",
+   "in_corpus": true,
+   "top_score": 0.6963,
+   "exempt": false
+  },
+  {
+   "id": "s02_ar",
+   "set": "tune",
+   "group": "substantive",
+   "question": "إذا لم يوجد نص تشريعي ينطبق على مسألة معينة، فبماذا يحكم القاضي؟",
+   "in_corpus": true,
+   "top_score": 0.6639,
+   "exempt": false
+  },
+  {
+   "id": "s03_en",
+   "set": "tune",
+   "group": "substantive",
+   "question": "How can a legal provision be repealed?",
+   "in_corpus": true,
+   "top_score": 0.7156,
+   "exempt": false
+  },
+  {
+   "id": "s03_ar",
+   "set": "tune",
+   "group": "substantive",
+   "question": "كيف يمكن إلغاء نص تشريعي؟",
+   "in_corpus": true,
+   "top_score": 0.7259,
+   "exempt": false
+  },
+  {
+   "id": "s04_en",
+   "set": "tune",
+   "group": "substantive",
+   "question": "At what age does a person reach legal majority in Egypt?",
+   "in_corpus": true,
+   "top_score": 0.6616,
+   "exempt": false
+  },
+  {
+   "id": "s04_ar",
+   "set": "tune",
+   "group": "substantive",
+   "question": "في أي سن يبلغ الشخص سن الرشد القانوني في مصر؟",
+   "in_corpus": true,
+   "top_score": 0.691,
+   "exempt": false
+  },
+  {
+   "id": "s05_en",
+   "set": "tune",
+   "group": "substantive",
+   "question": "What is the basic legal definition of a contract of sale?",
+   "in_corpus": true,
+   "top_score": 0.7391,
+   "exempt": false
+  },
+  {
+   "id": "s05_ar",
+   "set": "tune",
+   "group": "substantive",
+   "question": "ما هو التعريف القانوني الأساسي لعقد البيع؟",
+   "in_corpus": true,
+   "top_score": 0.6897,
+   "exempt": false
+  },
+  {
+   "id": "s06_en",
+   "set": "tune",
+   "group": "substantive",
+   "question": "How long after delivery can a purchaser claim on a warranty for defects in a thing sold?",
+   "in_corpus": true,
+   "top_score": 0.7295,
+   "exempt": false
+  },
+  {
+   "id": "s06_ar",
+   "set": "tune",
+   "group": "substantive",
+   "question": "كم من الوقت بعد التسليم يمكن للمشتري المطالبة بالضمان عن عيوب المبيع؟",
+   "in_corpus": true,
+   "top_score": 0.696,
+   "exempt": false
+  },
+  {
+   "id": "s07_en",
+   "set": "tune",
+   "group": "substantive",
+   "question": "Where must a purchaser pay the price, absent a contrary agreement?",
+   "in_corpus": true,
+   "top_score": 0.721,
+   "exempt": false
+  },
+  {
+   "id": "s07_ar",
+   "set": "tune",
+   "group": "substantive",
+   "question": "أين يجب على المشتري دفع الثمن في حال عدم وجود اتفاق مخالف؟",
+   "in_corpus": true,
+   "top_score": 0.6782,
+   "exempt": false
+  },
+  {
+   "id": "s08_en",
+   "set": "tune",
+   "group": "substantive",
+   "question": "How does a mandate (agency contract) come to an end?",
+   "in_corpus": true,
+   "top_score": 0.7121,
+   "exempt": false
+  },
+  {
+   "id": "s08_ar",
+   "set": "tune",
+   "group": "substantive",
+   "question": "كيف تنتهي الوكالة؟",
+   "in_corpus": true,
+   "top_score": 0.7451,
+   "exempt": false
+  },
+  {
+   "id": "s09_en",
+   "set": "tune",
+   "group": "substantive",
+   "question": "After how many years does the right to a servitude become extinguished through non-use?",
+   "in_corpus": true,
+   "top_score": 0.7037,
+   "exempt": false
+  },
+  {
+   "id": "s09_ar",
+   "set": "tune",
+   "group": "substantive",
+   "question": "بعد كم سنة ينقضي حق الارتفاق بسبب عدم استعماله؟",
+   "in_corpus": true,
+   "top_score": 0.7342,
+   "exempt": false
+  },
+  {
+   "id": "s10_en",
+   "set": "tune",
+   "group": "substantive",
+   "question": "Who bears the cost of works necessary to use and preserve a servitude, absent an agreement to the contrary?",
+   "in_corpus": true,
+   "top_score": 0.7207,
+   "exempt": false
+  },
+  {
+   "id": "s10_ar",
+   "set": "tune",
+   "group": "substantive",
+   "question": "من يتحمل تكلفة الأعمال اللازمة لاستعمال حق الارتفاق والمحافظة عليه في حال عدم وجود اتفاق؟",
+   "in_corpus": true,
+   "top_score": 0.6638,
+   "exempt": false
+  },
+  {
+   "id": "s11_en",
+   "set": "tune",
+   "group": "substantive",
+   "question": "What defines an alternative obligation?",
+   "in_corpus": true,
+   "top_score": 0.6886,
+   "exempt": false
+  },
+  {
+   "id": "s11_ar",
+   "set": "tune",
+   "group": "substantive",
+   "question": "ما هو تعريف الالتزام التخييري؟",
+   "in_corpus": true,
+   "top_score": 0.55,
+   "exempt": false
+  },
+  {
+   "id": "s12_en",
+   "set": "tune",
+   "group": "substantive",
+   "question": "Can a person renounce their personal liberty?",
+   "in_corpus": true,
+   "top_score": 0.7726,
+   "exempt": false
+  },
+  {
+   "id": "s12_ar",
+   "set": "tune",
+   "group": "substantive",
+   "question": "هل يجوز لأي شخص أن يتنازل عن حريته الشخصية؟",
+   "in_corpus": true,
+   "top_score": 0.743,
+   "exempt": false
+  },
+  {
+   "id": "s13_en",
+   "set": "tune",
+   "group": "substantive",
+   "question": "When is a person considered devoid of discretion and incapable of exercising civil rights?",
+   "in_corpus": true,
+   "top_score": 0.7568,
+   "exempt": false
+  },
+  {
+   "id": "s13_ar",
+   "set": "tune",
+   "group": "substantive",
+   "question": "متى يعتبر الشخص فاقداً للتمييز وغير أهل لمباشرة حقوقه المدنية؟",
+   "in_corpus": true,
+   "top_score": 0.7063,
+   "exempt": false
+  },
+  {
+   "id": "l01_en",
+   "set": "tune",
+   "group": "article_lookup",
+   "question": "What does Article 43 say?",
+   "in_corpus": true,
+   "top_score": 0.4443,
+   "exempt": true
+  },
+  {
+   "id": "l02_ar",
+   "set": "tune",
+   "group": "article_lookup",
+   "question": "ما هو نص المادة 52؟",
+   "in_corpus": true,
+   "top_score": 0.4412,
+   "exempt": true
+  },
+  {
+   "id": "l03_en",
+   "set": "tune",
+   "group": "article_lookup",
+   "question": "What does Article 274 say?",
+   "in_corpus": true,
+   "top_score": 0.4101,
+   "exempt": true
+  },
+  {
+   "id": "l04_ar",
+   "set": "tune",
+   "group": "article_lookup",
+   "question": "ما محتوى المادة 388؟",
+   "in_corpus": true,
+   "top_score": 0.4772,
+   "exempt": true
+  },
+  {
+   "id": "l05_en",
+   "set": "tune",
+   "group": "article_lookup",
+   "question": "What is Article 1018 about?",
+   "in_corpus": true,
+   "top_score": 0.4353,
+   "exempt": true
+  },
+  {
+   "id": "l06_ar",
+   "set": "tune",
+   "group": "article_lookup",
+   "question": "ما نص المادة 1024؟",
+   "in_corpus": true,
+   "top_score": 0.43,
+   "exempt": true
+  },
+  {
+   "id": "l07_en",
+   "set": "tune",
+   "group": "article_lookup",
+   "question": "What does Article 1149 say?",
+   "in_corpus": true,
+   "top_score": 0.3917,
+   "exempt": true
+  },
+  {
+   "id": "l08_ar",
+   "set": "tune",
+   "group": "article_lookup",
+   "question": "أخبرني بمحتوى المادة 456",
+   "in_corpus": true,
+   "top_score": 0.4994,
+   "exempt": true
+  },
+  {
+   "id": "l09_en",
+   "set": "tune",
+   "group": "article_lookup",
+   "question": "What is Article 673 about?",
+   "in_corpus": true,
+   "top_score": 0.4241,
+   "exempt": true
+  },
+  {
+   "id": "l10_ar",
+   "set": "tune",
+   "group": "article_lookup",
+   "question": "ما هي المادة 1090؟",
+   "in_corpus": true,
+   "top_score": 0.4091,
+   "exempt": true
+  },
+  {
+   "id": "l11_en",
+   "set": "tune",
+   "group": "article_lookup",
+   "question": "What does Article 1 say?",
+   "in_corpus": true,
+   "top_score": 0.4753,
+   "exempt": true
+  },
+  {
+   "id": "l12_ar",
+   "set": "tune",
+   "group": "article_lookup",
+   "question": "ما نص المادة 44؟",
+   "in_corpus": true,
+   "top_score": 0.4761,
+   "exempt": true
+  },
+  {
+   "id": "r01_en",
+   "set": "tune",
+   "group": "repealed_status",
+   "question": "Is the law about associations still in force?",
+   "in_corpus": true,
+   "top_score": 0.4774,
+   "exempt": false
+  },
+  {
+   "id": "r02_ar",
+   "set": "tune",
+   "group": "repealed_status",
+   "question": "هل ما زالت أحكام الجمعيات سارية؟",
+   "in_corpus": true,
+   "top_score": 0.5055,
+   "exempt": false
+  },
+  {
+   "id": "r03_en",
+   "set": "tune",
+   "group": "repealed_status",
+   "question": "Is Article 65 currently valid law?",
+   "in_corpus": true,
+   "top_score": 0.4714,
+   "exempt": true
+  },
+  {
+   "id": "r04_ar",
+   "set": "tune",
+   "group": "repealed_status",
+   "question": "هل المادة 400 لا تزال نافذة؟",
+   "in_corpus": true,
+   "top_score": 0.4505,
+   "exempt": true
+  },
+  {
+   "id": "r05_en",
+   "set": "tune",
+   "group": "repealed_status",
+   "question": "What happened to the articles on proof of obligations (389-417)?",
+   "in_corpus": true,
+   "top_score": 0.4961,
+   "exempt": false
+  },
+  {
+   "id": "r06_ar",
+   "set": "tune",
+   "group": "repealed_status",
+   "question": "هل تم إلغاء نصوص إثبات الالتزام؟",
+   "in_corpus": true,
+   "top_score": 0.5636,
+   "exempt": false
+  },
+  {
+   "id": "r07_en",
+   "set": "tune",
+   "group": "repealed_status",
+   "question": "Is Article 147 still in force?",
+   "in_corpus": true,
+   "top_score": 0.434,
+   "exempt": true
+  },
+  {
+   "id": "r08_ar",
+   "set": "tune",
+   "group": "repealed_status",
+   "question": "هل المادة 1149 لا تزال سارية؟",
+   "in_corpus": true,
+   "top_score": 0.4148,
+   "exempt": true
+  },
+  {
+   "id": "r09_en",
+   "set": "tune",
+   "group": "repealed_status",
+   "question": "Is Article 390 currently applicable?",
+   "in_corpus": true,
+   "top_score": 0.4494,
+   "exempt": true
+  },
+  {
+   "id": "r10_ar",
+   "set": "tune",
+   "group": "repealed_status",
+   "question": "هل يمكن الاستناد إلى نصوص المواد من 54 إلى 80 اليوم؟",
+   "in_corpus": true,
+   "top_score": 0.4976,
+   "exempt": false
+  },
+  {
+   "id": "o01_en",
+   "set": "tune",
+   "group": "out_of_corpus",
+   "question": "What does Egyptian criminal law say about theft?",
+   "in_corpus": false,
+   "top_score": 0.6206,
+   "exempt": false
+  },
+  {
+   "id": "o02_ar",
+   "set": "tune",
+   "group": "out_of_corpus",
+   "question": "ما هو حكم القانون الجنائي المصري في جريمة السرقة؟",
+   "in_corpus": false,
+   "top_score": 0.4797,
+   "exempt": false
+  },
+  {
+   "id": "o03_en",
+   "set": "tune",
+   "group": "out_of_corpus",
+   "question": "What is the minimum wage in Egypt according to this code?",
+   "in_corpus": false,
+   "top_score": 0.5816,
+   "exempt": false
+  },
+  {
+   "id": "o04_en",
+   "set": "tune",
+   "group": "out_of_corpus",
+   "question": "What does Article 5000 say?",
+   "in_corpus": false,
+   "top_score": 0.4474,
+   "exempt": false
+  },
+  {
+   "id": "o05_ar",
+   "set": "tune",
+   "group": "out_of_corpus",
+   "question": "ما نص المادة 5000؟",
+   "in_corpus": false,
+   "top_score": 0.4303,
+   "exempt": false
+  },
+  {
+   "id": "o06_en",
+   "set": "tune",
+   "group": "out_of_corpus",
+   "question": "What is the capital of Egypt?",
+   "in_corpus": false,
+   "top_score": 0.574,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_00",
+   "set": "check",
+   "group": "in_domain",
+   "question": "Is a contract concluded by a minor valid?",
+   "in_corpus": true,
+   "top_score": 0.6768,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_01",
+   "set": "check",
+   "group": "in_domain",
+   "question": "What compensation is owed for damage caused by a wrongful act?",
+   "in_corpus": true,
+   "top_score": 0.6803,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_02",
+   "set": "check",
+   "group": "in_domain",
+   "question": "When does an offer to contract stop being binding?",
+   "in_corpus": true,
+   "top_score": 0.6616,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_03",
+   "set": "check",
+   "group": "in_domain",
+   "question": "Can a lessee sublet the leased property without the lessor's consent?",
+   "in_corpus": true,
+   "top_score": 0.7626,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_04",
+   "set": "check",
+   "group": "in_domain",
+   "question": "What is the limitation period for claims arising from unjust enrichment?",
+   "in_corpus": true,
+   "top_score": 0.672,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_05",
+   "set": "check",
+   "group": "in_domain",
+   "question": "Who is liable for damage caused by an animal?",
+   "in_corpus": true,
+   "top_score": 0.6895,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_06",
+   "set": "check",
+   "group": "in_domain",
+   "question": "Can the parties agree in advance on the amount of compensation?",
+   "in_corpus": true,
+   "top_score": 0.6986,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_07",
+   "set": "check",
+   "group": "in_domain",
+   "question": "What obligations does a seller have regarding delivery of the thing sold?",
+   "in_corpus": true,
+   "top_score": 0.77,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_08",
+   "set": "check",
+   "group": "in_domain",
+   "question": "هل يكون العقد الذي يبرمه القاصر صحيحاً؟",
+   "in_corpus": true,
+   "top_score": 0.6136,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_09",
+   "set": "check",
+   "group": "in_domain",
+   "question": "ما التعويض المستحق عن الضرر الناتج عن العمل غير المشروع؟",
+   "in_corpus": true,
+   "top_score": 0.6589,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_10",
+   "set": "check",
+   "group": "in_domain",
+   "question": "متى يسقط الإيجاب ولا يعود ملزماً؟",
+   "in_corpus": true,
+   "top_score": 0.5836,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_11",
+   "set": "check",
+   "group": "in_domain",
+   "question": "هل يجوز للمستأجر التأجير من الباطن دون موافقة المؤجر؟",
+   "in_corpus": true,
+   "top_score": 0.7032,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_12",
+   "set": "check",
+   "group": "in_domain",
+   "question": "ما مدة تقادم دعوى الإثراء بلا سبب؟",
+   "in_corpus": true,
+   "top_score": 0.6774,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_13",
+   "set": "check",
+   "group": "in_domain",
+   "question": "من المسؤول عن الضرر الذي يحدثه الحيوان؟",
+   "in_corpus": true,
+   "top_score": 0.6681,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_14",
+   "set": "check",
+   "group": "in_domain",
+   "question": "هل يجوز للمتعاقدين تحديد مقدار التعويض مقدماً؟",
+   "in_corpus": true,
+   "top_score": 0.8008,
+   "exempt": false
+  },
+  {
+   "id": "in_domain_15",
+   "set": "check",
+   "group": "in_domain",
+   "question": "ما التزامات البائع بشأن تسليم المبيع؟",
+   "in_corpus": true,
+   "top_score": 0.7668,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_00",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "How is the end-of-service award calculated under the Saudi Labor Law?",
+   "in_corpus": false,
+   "top_score": 0.4988,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_01",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "What is the notice period for resigning under Saudi labor regulations?",
+   "in_corpus": false,
+   "top_score": 0.5078,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_02",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "What is the penalty for drug possession under the Egyptian Penal Code?",
+   "in_corpus": false,
+   "top_score": 0.6001,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_03",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "How long can the public prosecution detain a suspect before trial in Egypt?",
+   "in_corpus": false,
+   "top_score": 0.575,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_04",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "What is the VAT rate in Saudi Arabia?",
+   "in_corpus": false,
+   "top_score": 0.4087,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_05",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "What are the income tax brackets for individuals in Egypt?",
+   "in_corpus": false,
+   "top_score": 0.6191,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_06",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "How do I register a limited liability company in Riyadh?",
+   "in_corpus": false,
+   "top_score": 0.486,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_07",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "What are the requirements for a commercial register in Saudi Arabia?",
+   "in_corpus": false,
+   "top_score": 0.4814,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_08",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "كيف تحسب مكافأة نهاية الخدمة وفق نظام العمل السعودي؟",
+   "in_corpus": false,
+   "top_score": 0.4847,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_09",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "ما مدة الإشعار عند الاستقالة في نظام العمل السعودي؟",
+   "in_corpus": false,
+   "top_score": 0.5346,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_10",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "ما عقوبة حيازة المخدرات في قانون العقوبات المصري؟",
+   "in_corpus": false,
+   "top_score": 0.4309,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_11",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "ما مدة الحبس الاحتياطي في قانون الإجراءات الجنائية المصري؟",
+   "in_corpus": false,
+   "top_score": 0.4935,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_12",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "ما نسبة ضريبة القيمة المضافة في السعودية؟",
+   "in_corpus": false,
+   "top_score": 0.426,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_13",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "ما شرائح ضريبة الدخل على الأفراد في مصر؟",
+   "in_corpus": false,
+   "top_score": 0.5058,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_14",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "كيف أسجل شركة ذات مسؤولية محدودة في الرياض؟",
+   "in_corpus": false,
+   "top_score": 0.4605,
+   "exempt": false
+  },
+  {
+   "id": "other_jurisdiction_15",
+   "set": "check",
+   "group": "other_jurisdiction",
+   "question": "ما متطلبات استخراج السجل التجاري في السعودية؟",
+   "in_corpus": false,
+   "top_score": 0.4557,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_00",
+   "set": "check",
+   "group": "off_topic",
+   "question": "What's the weather in Cairo tomorrow?",
+   "in_corpus": false,
+   "top_score": 0.4859,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_01",
+   "set": "check",
+   "group": "off_topic",
+   "question": "Give me a recipe for koshari.",
+   "in_corpus": false,
+   "top_score": 0.4131,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_02",
+   "set": "check",
+   "group": "off_topic",
+   "question": "Which football team won the Egyptian league last season?",
+   "in_corpus": false,
+   "top_score": 0.5534,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_03",
+   "set": "check",
+   "group": "off_topic",
+   "question": "How do I reset my email password?",
+   "in_corpus": false,
+   "top_score": 0.4381,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_04",
+   "set": "check",
+   "group": "off_topic",
+   "question": "Recommend a good laptop for programming.",
+   "in_corpus": false,
+   "top_score": 0.426,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_05",
+   "set": "check",
+   "group": "off_topic",
+   "question": "Translate 'good morning' into French.",
+   "in_corpus": false,
+   "top_score": 0.4133,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_06",
+   "set": "check",
+   "group": "off_topic",
+   "question": "What time does the metro close in Cairo?",
+   "in_corpus": false,
+   "top_score": 0.4961,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_07",
+   "set": "check",
+   "group": "off_topic",
+   "question": "Write a short poem about the Nile.",
+   "in_corpus": false,
+   "top_score": 0.4486,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_08",
+   "set": "check",
+   "group": "off_topic",
+   "question": "ما حالة الطقس في القاهرة غداً؟",
+   "in_corpus": false,
+   "top_score": 0.3647,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_09",
+   "set": "check",
+   "group": "off_topic",
+   "question": "أعطني وصفة الكشري.",
+   "in_corpus": false,
+   "top_score": 0.4817,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_10",
+   "set": "check",
+   "group": "off_topic",
+   "question": "من فاز بالدوري المصري الموسم الماضي؟",
+   "in_corpus": false,
+   "top_score": 0.3936,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_11",
+   "set": "check",
+   "group": "off_topic",
+   "question": "كيف أعيد تعيين كلمة مرور بريدي الإلكتروني؟",
+   "in_corpus": false,
+   "top_score": 0.4371,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_12",
+   "set": "check",
+   "group": "off_topic",
+   "question": "رشح لي حاسوباً محمولاً جيداً للبرمجة.",
+   "in_corpus": false,
+   "top_score": 0.4872,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_13",
+   "set": "check",
+   "group": "off_topic",
+   "question": "ترجم عبارة صباح الخير إلى الفرنسية.",
+   "in_corpus": false,
+   "top_score": 0.4036,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_14",
+   "set": "check",
+   "group": "off_topic",
+   "question": "متى يغلق مترو القاهرة؟",
+   "in_corpus": false,
+   "top_score": 0.4497,
+   "exempt": false
+  },
+  {
+   "id": "off_topic_15",
+   "set": "check",
+   "group": "off_topic",
+   "question": "اكتب قصيدة قصيرة عن النيل.",
+   "in_corpus": false,
+   "top_score": 0.4869,
+   "exempt": false
+  }
+ ]
+}

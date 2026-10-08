@@ -16,7 +16,7 @@ MLOps course.
 | What | Result | Details |
 |---|---|---|
 | Answer quality (RAGAS, 54 questions, Qwen3-8B) | faithfulness **0.896**, context precision 0.908, recall 0.854 | [GPU evaluation](#gpu-evaluation-kaggle-vllm-ragas-mlflow) |
-| Out-of-scope questions declined | 4 of 6 | `docs/decisions.md` |
+| Out-of-scope questions declined | 6 of 6 (plus a refusal gate before the LLM) | [Refusal gate](#refusal-gate) |
 | AWQ 4-bit vs fp16 | no quality loss (−0.002), **2.7× faster**, 2.7× less memory | [Quantization](#quantization-awq-4-bit) |
 | Load, 50 concurrent users | 1,692 requests, **0 failures**, p95 12.0 s | [Load test](#load-test-locust-50-users) |
 | Query drift | other-jurisdiction and off-topic questions flagged, normal ones not | [Query drift](#query-drift) |
@@ -388,7 +388,7 @@ them, it falls back to the local CPU model.
 
 | Faithfulness | Context precision | Context recall | Article hit rate | Out-of-corpus declined |
 |---|---|---|---|---|
-| **0.896** | 0.908 | 0.854 | 0.917 | 4 of 6 |
+| **0.896** | 0.908 | 0.854 | 0.917 | 6 of 6 |
 
 The sweep found no chunking config meaningfully better than the current
 one (best challenger +0.044 faithfulness, below the 0.05 needed), so
@@ -455,6 +455,21 @@ docker compose -f docker-compose.yml -f docker-compose.qdrant.yml up -d   # API 
 python scripts/retrieval_bench.py --url http://localhost:6333            # benchmark against it
 ```
 
+## Refusal gate
+
+Before the LLM is called, a question is declined if nothing in the index is
+close to it: best-match similarity below `refusal.min_score` (0.47,
+`params.yaml`). Questions that name an indexed article are always answered.
+The reply is a fixed refusal in the question's language, with no sources.
+
+Calibrated on the real index (`scripts/refusal_calibration.py`, retrieval
+only): at 0.47 it refuses **0 of 64 valid questions** and about half of the
+off-topic or other-jurisdiction ones (17 of 38); the prompt makes the model
+decline the rest (6 of 6 in the evaluation). A higher threshold would start
+refusing valid questions about repealed articles, which match weakly. Details
+and the full trade-off table: `reports/refusal_calibration.md`,
+`docs/decisions.md`.
+
 ## Query drift
 
 Are users asking what the system was evaluated on? `scripts/embedding_drift.py`
@@ -486,4 +501,4 @@ green. The full reasoning, including what didn't work, is in
 | 4 · Observability | Langfuse tracing (no raw PII in traces); Prometheus metrics, Grafana dashboard, alert rules; streaming (`/ask/stream`) with PII-safe incremental redaction; Arabic lam-alef extraction fix |
 | 5 · GPU evaluation and optimization | vLLM + Qwen3-8B on Kaggle; RAGAS on 54 questions; MLflow 5-config sweep and registry; CI RAGAS gate with staleness check; evaluation fixes (repeal-flag data bug, same-language retrieval, judge context, refusal scoring); AWQ 4-bit; Locust at 50 users; query-drift check |
 | 6 · Review readiness | Public image, 3-command setup without DVC, peer review guide and issue template, repealed-range fix found in the reviewer dry run, architecture diagram |
-| 7 · After submission | Alerts delivered through Alertmanager; drift alert switched to the off-corpus share; retrieval 2.45 s → 0.13 s at 50 users (same-language lookup by ID, optional Qdrant server), +29% throughput; CI reads the DVC remote with a read-only service account (no weekly token renewal) |
+| 7 · After submission | Alerts delivered through Alertmanager; drift alert switched to the off-corpus share; retrieval 2.45 s → 0.13 s at 50 users (same-language lookup by ID, optional Qdrant server), +29% throughput; refusal gate before the LLM (0.47, no valid question refused) and a refusal-scoring fix (6 of 6 declined, not 4); CI reads the DVC remote with a read-only service account (no weekly token renewal) |

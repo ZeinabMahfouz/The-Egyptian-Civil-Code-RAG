@@ -28,7 +28,7 @@ LATENCY_BUCKETS = (0.1, 0.5, 1, 2.5, 5, 10, 20, 30, 45, 60, 90, 120, 180, 300)
 REQUESTS = Counter(
     "rag_requests_total",
     "Completed /ask requests",
-    ["service", "status"],  # status: ok | no_context | error
+    ["service", "status"],  # status: ok | no_context | refused | error
 )
 LATENCY = Histogram(
     "rag_request_latency_seconds",
