@@ -43,6 +43,14 @@ curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" \
      -d '{"question": "What does Article 147 say?"}'
 ```
 
+**Requirements:** Docker (Linux, macOS, or Windows with WSL2), about 8 GB
+of free RAM, disk space for the image plus ~5.6 GB of models, port 8000 free,
+and internet on the first start to download both (the models are cached in a
+Docker volume afterwards). No GPU, no API keys, no seed data, nothing to run
+first. Every environment variable is optional and listed in `.env.example`.
+Other ports, only for the optional parts: 6333 (Qdrant server), 19090 / 3001
+/ 19093 (Prometheus / Grafana / Alertmanager), 8080 (canary).
+
 The image is published by CI from `main` with the vector index baked in, so
 no DVC access is needed. It runs Qwen3-1.7B on CPU (30-90 s per answer); the
 evaluated configuration is Qwen3-8B on vLLM (see "What runs where" in
