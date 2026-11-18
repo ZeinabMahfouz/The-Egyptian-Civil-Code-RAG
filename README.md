@@ -416,7 +416,7 @@ faithfulness on the 20-question CI subset is below 0.75, or if fewer than
 75% of its out-of-corpus questions were declined. It also fails if the
 committed evaluation is stale, meaning it was run against a different
 corpus or different chunking/embedding params than the repo now has.
-Current result: faithfulness 0.868, 3 of 4 declined, **PASS**.
+Current result: faithfulness 0.868, 4 of 4 declined, **PASS**.
 
 ## Quantization (AWQ 4-bit)
 
