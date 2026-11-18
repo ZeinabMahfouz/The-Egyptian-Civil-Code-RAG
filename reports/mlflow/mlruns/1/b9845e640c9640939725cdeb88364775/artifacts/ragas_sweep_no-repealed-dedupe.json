@@ -1,0 +1,526 @@
+[
+  {
+    "user_input": "What happens if unforeseen exceptional circumstances make contract performance excessively burdensome for the debtor?",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 147]\nThe contract makes the law of the parties. It can be\nrevoked or altered only by mutual consent of the parties\nor for reasons provided for by law.\nWhen, however, as a result of exceptional and\nunpredictable events of a general character, the\nperformance of the contractual obligation, without\nbecoming impossible, becomes excessively onerous in\nsuch way as to threaten the debtor with exorbitant loss,\nthe judge may according to the circumstances, and after\ntaking into consideration the interests of both parties,\nreduce to reasonable limits, the obligation that has\nbecome excessive. Any agreement to the contrary is\nvoid.",
+      "[Egyptian Civil Code, Article 217]\nThe debtor may by agreement accept liability for\nunforeseen events and for cases of force majeure. The\ndebtor may by agreement be discharged from all liability\nfor his failure to perform the contractual obligation, with\nthe exception of liability arising from his fraud or gross\nnegligence.\nThe debtor may, nevertheless, stipulate that he shall not\nbe liable for fraud or gross negligence committed by\npersons whom he employs for the performance of his\nobligation.\nAny clause discharging a person from responsibility for\nunlawful acts, is void.",
+      "[Egyptian Civil Code, Article 215]\nWhen specific performance by the debtor is impossible,\nhe will be condemned to pay damages for\nnonperformance of his obligation, unless he establishes\nthat the impossibility of performance arose from a cause\nbeyond his control. The same principle will apply, if the\ndebtor is late in the performance of his obligation."
+    ],
+    "response": "If unforeseen exceptional circumstances make contract performance excessively burdensome for the debtor, the judge may, according to the circumstances and after taking into consideration the interests of both parties, reduce to reasonable limits the obligation that has become excessive. This is provided for in Article 147.",
+    "reference": "The judge may, according to the circumstances and after weighing both parties' interests, reduce the excessive obligation to a reasonable limit. Any agreement to the contrary is void.",
+    "_id": "s01_en",
+    "_category": "substantive",
+    "_language": "en",
+    "_sources": [
+      "Egyptian Civil Code, Article 147",
+      "Egyptian Civil Code, Article 217",
+      "Egyptian Civil Code, Article 215"
+    ],
+    "_expected_articles": [
+      147
+    ],
+    "_article_hit": true,
+    "faithfulness": 1.0,
+    "context_precision": 0.99999999995,
+    "context_recall": 1.0,
+    "answer_relevancy": 0.6512265497905322
+  },
+  {
+    "user_input": "ماذا يحدث إذا جعلت ظروف استثنائية غير متوقعة تنفيذ العقد مرهقاً للمدين؟",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 147]\n( ١ ( العقد شريعة المتعاقدين ، فلا يجوز نقضه ولا تعديله إلا باتفاق\nالطرفين ، أو للأسباب التى يقررها القانون.\n( ٢ ( ومع ذلك إذا طرأت حوادث استثنائية عامة لم يكن فى الوسع توقعها\nوترتب على حدوثها أن تنفيذ الإلتزام التعاقدى ، وان لم يصبح مستحيلا ،\nصار مرهقا للمدين بحيث يهدده بخسارة فادحة ، جاز للقاضى تبعا\nللظروف وسد الموازنة بين مصلحة الطرفين أن يرد الإلتزام المرهق إلى\nالحد المعقول. ويقع باطلا كل اتفاق على خلاف ذلك.",
+      "[Egyptian Civil Code, Article 217]\n( ١ ( يجوز الاتفاق على أن يتحمل المدين تبعة الحادث المفاجئ والقوة\nالقاهرة.\n( ٢ ( وكذلك يجوز الاتفاق على إعفاء المدين من أية مسئولية تترتب على\nعدم تنفيذ إلتزامه التعاقدى الا ما ينشأ عن غشه أو عن خطئه الجسيم ، ومع\nذلك يجوز للمدين أن يشترط عدم مسئوليته عن الغش أو الخطأ الجسيم\nالذى يقع من أشخاص يستخدمهم فى تنفيذ إلتزامه.\n( ٣ ( ويقع باطلا كل شرط يقضى بالإعفاء من المسئولية المترتبة على\nالعمل غير المشروع.",
+      "[Egyptian Civil Code, Article 157]\n( ١ ( فى العقود الملزمة للجانبين ، إذا لم يوف أحد المتعاقدين بإلتزامه جاز\nللمتعاقد الآخر بعد اعذاره المدين أن يطالب بتنفيذ العقد أو بفسخه ، مع\nالتعويض فى الهالتين أن كان له مقتض.\n( ٢ ( ويجوز للقاضى أن يمنح المدين اجلا إذا اقتضت الظروف ذلك ، كما\nيجوز له أن يرفض الفسخ إذا كان ما لم يرف به المدين قليل الأهمية\nبالنسبة إلى الإلتزام فى جملته."
+    ],
+    "response": "إذا جعلت ظروف استثنائية غير متوقعة تنفيذ العقد مرهقاً للمدين، جاز للقاضى تبعا للظروف وسد الموازنة بين مصلحة الطرفين أن يرد الإلتزام المرهق إلى الحد المعقول. ويقع باطلا كل اتفاق على خلاف ذلك. (المادة 147)",
+    "reference": "The judge may, according to the circumstances and after weighing both parties' interests, reduce the excessive obligation to a reasonable limit. Any agreement to the contrary is void.",
+    "_id": "s01_ar",
+    "_category": "substantive",
+    "_language": "ar",
+    "_sources": [
+      "Egyptian Civil Code, Article 147",
+      "Egyptian Civil Code, Article 217",
+      "Egyptian Civil Code, Article 157"
+    ],
+    "_expected_articles": [
+      147
+    ],
+    "_article_hit": true,
+    "faithfulness": 1.0,
+    "context_precision": 0.8333333332916666,
+    "context_recall": 1.0,
+    "answer_relevancy": 0.6942273701743029
+  },
+  {
+    "user_input": "In the absence of an applicable legal provision, what does the judge decide according to?",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 1]\nProvisions of laws govern all matters to which these\nprovisions apply in letter or spirit.\nIn the absence of a provision of a law that is applicable,\nthe Judge will decide according to custom and in the\nabsence of custom in accordance with the principles of\nMoslem Law.\nIn the absence of such principles, the Judge will apply the\nprinciples of natural justice and the rules of equity.",
+      "[Egyptian Civil Code, Article 200]\nThe judge shall decide, in the absence of any provision of\nthe law, whether a natural obligation exists.\nThere cannot ever be a natural obligation that is contrary\nto public policy.",
+      "[Egyptian Civil Code, Article 346]\nIn the absence of an agreement or of a provision of the\nlaw to the contrary, payment must be made as soon as\nthe obligation has been definitely created as a liability of\nthe debtor.\nThe judge may in exceptional cases and in the absence of\na provision of the law to the contrary, grant to the\ndebtor, when his position so requires, one or more\nreasonable delays for the performance of his obligation,\nprovided that no serious prejudice is thereby caused to\nthe creditor."
+    ],
+    "response": "In the absence of an applicable legal provision, the judge decides according to custom. If there is no custom, the judge decides in accordance with the principles of Moslem Law. If there are no such principles, the judge applies the principles of natural justice and the rules of equity. (Article 1)",
+    "reference": "The judge decides according to custom, and in the absence of custom, according to the principles of Islamic (Moslem) law, and in the absence of such principles, according to natural justice and equity.",
+    "_id": "s02_en",
+    "_category": "substantive",
+    "_language": "en",
+    "_sources": [
+      "Egyptian Civil Code, Article 1",
+      "Egyptian Civil Code, Article 200",
+      "Egyptian Civil Code, Article 346"
+    ],
+    "_expected_articles": [
+      1
+    ],
+    "_article_hit": true,
+    "faithfulness": 1.0,
+    "context_precision": 0.9999999999,
+    "context_recall": 1.0,
+    "answer_relevancy": 0.8746283050049849
+  },
+  {
+    "user_input": "إذا لم يوجد نص تشريعي ينطبق على مسألة معينة، فبماذا يحكم القاضي؟",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 1]\n(١) تسرى النصوص التشريعية على جميع المسائل التي تتناولها هذه\nالنصوص في لفظها أو في فحواها.\n)٢( فإذا لم يوجد نص تشريعي يمكن تطبيقه، حكم القاضي بمقتضى\nالعرف، فإذا لم يوجد، فبمقتضى مبادئ الشريعة الإسلامية، فإذا لم يوجد\nفبمقتضى مبادئ القانون الطبيعي وقواعد العدالة.",
+      "[Egyptian Civil Code, Article 200]\nيقدر القاضى ، عند عدم النص ، ما إذا كان هناك إلتزام طبيعى. وفى كل\nحال لا يجوز أن يقوم إلتزام طبيعى يخالف النظام العام.",
+      "[Egyptian Civil Code, Article 32]\nيسرى في شأن المفقود والغائب الأحكام المقررة في قوانين خاصة ، فان لم\nتوجد فأحكام الشريعة الإسلامية."
+    ],
+    "response": "إذا لم يوجد نص تشريعي ينطبق على مسألة معينة، فيحكم القاضي بمقتضى العرف. وإذا لم يوجد العرف، فيحكم القاضي بمقتضى مبادئ الشريعة الإسلامية. وإذا لم يوجد مبادئ الشريعة الإسلامية، فيحكم القاضي بمقتضى مبادئ القانون الطبيعي وقواعد العدالة. هذا ما ورد في المادة ١ من القانون المدني المصري.",
+    "reference": "The judge decides according to custom, and in the absence of custom, according to the principles of Islamic (Moslem) law, and in the absence of such principles, according to natural justice and equity.",
+    "_id": "s02_ar",
+    "_category": "substantive",
+    "_language": "ar",
+    "_sources": [
+      "Egyptian Civil Code, Article 1",
+      "Egyptian Civil Code, Article 200",
+      "Egyptian Civil Code, Article 32"
+    ],
+    "_expected_articles": [
+      1
+    ],
+    "_article_hit": true,
+    "faithfulness": 1.0,
+    "context_precision": 0.9999999999666667,
+    "context_recall": 1.0,
+    "answer_relevancy": 0.7074205799926371
+  },
+  {
+    "user_input": "How can a legal provision be repealed?",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 2]\nA provision of a law can only be repealed by a\nsubsequent law expressly providing for such repeal, or\ncontaining a provision inconsistent with a provision of\nthe former law or regulating anew a matter previously\nregulated by a former law.",
+      "[Egyptian Civil Code, Article 845]\nPartition by agreement may be rescinded if one of the\nco-partitioners succeeds in proving that he has been\ninjured to the extent of more than one fifth of his share,\non the basis of the value of the property at the time of\nthe partition.\nThe action for rescission must be commenced within the\nyear following the partition. The defendant can stop the\naction and prevent the new partition, by giving the\nplaintiff the amount by which his share is short in money\nor in kind.",
+      "[Egyptian Civil Code, Article 149]\nWhen a contract of adhesion contains leonine\nconditions, the judge may modify these conditions or\nrelieve the adhering party of the obligation to perform\nthese conditions in accordance with the principles of\nequity. Any agreement to the contrary is void."
+    ],
+    "response": "A legal provision can only be repealed by a subsequent law that expressly provides for such repeal, or by a subsequent law containing a provision inconsistent with a provision of the former law or regulating anew a matter previously regulated by a former law. This is stipulated in Article 2 of the Egyptian Civil Code.",
+    "reference": "A provision of law can only be repealed by a subsequent law that expressly provides for repeal, contains a provision inconsistent with the earlier law, or regulates anew a matter already regulated by the earlier law.",
+    "_id": "s03_en",
+    "_category": "substantive",
+    "_language": "en",
+    "_sources": [
+      "Egyptian Civil Code, Article 2",
+      "Egyptian Civil Code, Article 845",
+      "Egyptian Civil Code, Article 149"
+    ],
+    "_expected_articles": [
+      2
+    ],
+    "_article_hit": true,
+    "faithfulness": 1.0,
+    "context_precision": 0.9999999999,
+    "context_recall": 1.0,
+    "answer_relevancy": 0.7549875053928505
+  },
+  {
+    "user_input": "كيف يمكن إلغاء نص تشريعي؟",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 2]\nلا يجوز إلغاء نص تشريعي إلا بتشريع لاحق ينص صراحة على هذا\nالإلغاء، أو يشتمل على نص يتعارض مع نص التشريع القديم ، أو ينظم من\nجديد الموضوع الذي سبق أن قرر قواعده ذلك التشريع.",
+      "[Egyptian Civil Code, Article 141]\n( ١ ( إذا كان العقد باطلا جاز لكل ذى مصلحة أن يتمسك بالبطلان ،\nوللمحكمة أن تقضى به من تلقاء نفسها ، ولا يزول البطلان بالإجازة.\n( ٢ ( وتسقط دعوى البطلان بمضى خمس عشرة سنه من وقت العقد.",
+      "[Egyptian Civil Code, Article 135]\nإذا كان محل الإلتزام مخالفا للنظام العام أو الآداب كان العقد باطلا.\nالسبب"
+    ],
+    "response": "يمكن إلغاء نص تشريعي فقط بتشريع لاحق ينص صراحة على هذا الإلغاء، أو يشتمل على نص يتعارض مع نص التشريع القديم، أو ينظم من جديد الموضوع الذي سبق أن قرر قواعده ذلك التشريع، وفقا لنص مادة (٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١) و(٢) من المادتين (١)",
+    "reference": "A provision of law can only be repealed by a subsequent law that expressly provides for repeal, contains a provision inconsistent with the earlier law, or regulates anew a matter already regulated by the earlier law.",
+    "_id": "s03_ar",
+    "_category": "substantive",
+    "_language": "ar",
+    "_sources": [
+      "Egyptian Civil Code, Article 2",
+      "Egyptian Civil Code, Article 141",
+      "Egyptian Civil Code, Article 135"
+    ],
+    "_expected_articles": [
+      2
+    ],
+    "_article_hit": true,
+    "faithfulness": null,
+    "context_precision": 0.9999999999,
+    "context_recall": 1.0,
+    "answer_relevancy": 0.7921723102431142
+  },
+  {
+    "user_input": "At what age does a person reach legal majority in Egypt?",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 33]\nEgyptian nationality is governed by a special law.",
+      "[Egyptian Civil Code, Article 44]\nAll persons attaining majority in possession of their\nmental faculties and not under legal disability, have full\nlegal capacity to exercise their civil rights.\nThe majority of a person is fixed at twenty one years\ncompleted in accordance with the Gregorian calendar.",
+      "[Egyptian Civil Code, Article 11]\nThe status and the legal capacity of persons are\ngoverned by the law of the country to which they belong\nby reason of their nationality. If, however, in a\ntransaction of a pecuniary nature, concluded and having\neffect in Egypt, one of the parties is a foreigner without\nlegal capacity and such lack of capacity is due to a\nreason that is not apparent and which cannot be easily\ndetected by the other party, this reason has no effect on\nhis legal capacity.\nThe legal status of foreign juristic persons such as\ncompanies, associations, foundations, or others, is\nsubject to the law of the State in whose territory such\njuristic persons have established their actual principal\nseat of management. If, however, a juristic person\ncarries on its principal activities in Egypt, Egyptian law\nwill be applied."
+    ],
+    "response": "In Egypt, a person reaches legal majority at the age of twenty one years completed, as stipulated in Article 44.",
+    "reference": "A person attaining majority in possession of their mental faculties, and not under legal disability, has full legal capacity. Majority is fixed at twenty-one complete Gregorian years.",
+    "_id": "s04_en",
+    "_category": "substantive",
+    "_language": "en",
+    "_sources": [
+      "Egyptian Civil Code, Article 33",
+      "Egyptian Civil Code, Article 44",
+      "Egyptian Civil Code, Article 11"
+    ],
+    "_expected_articles": [
+      44
+    ],
+    "_article_hit": true,
+    "faithfulness": 1.0,
+    "context_precision": 0.49999999995,
+    "context_recall": 1.0,
+    "answer_relevancy": 0.9999999999997956
+  },
+  {
+    "user_input": "في أي سن يبلغ الشخص سن الرشد القانوني في مصر؟",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 44]\n(١( كل شخص بلغ سن الرشد متمتعا بقواه العقلية ، ولم يحجر عليه ،\nيكون كامل الأهلية لمباشرة حقوقه المدنية.\n(٢) وسن الرشد هى إحدى وعشرون سنة ميلادية كاملة.",
+      "[Egyptian Civil Code, Article 46]\nكل من بلغ سن التمييز ولم يبلغ سن الرشد وكل من بلغ سن الرشد وكان\nسفيهاً أو ذا غفلة ' يكون ناقص الأهلية وفقاً لما يقرره القانون.",
+      "[Egyptian Civil Code, Article 45]\n(١) لا يكون أهلا لمباشرة حقوقه المدنية من كان فاقد التمييز لصغر في\nالسن أو عته أو جنون.\n(٢( وكل من لم يبلغ السابعة يعتبر فاقدا ً للتمييز."
+    ],
+    "response": "في مصر، يبلغ الشخص سن الرشد القانوني في سن إحدى وعشرين سنة ميلادية كاملة، وفقاً لنص المادة 44 من Egyptian Civil Code.",
+    "reference": "A person attaining majority in possession of their mental faculties, and not under legal disability, has full legal capacity. Majority is fixed at twenty-one complete Gregorian years.",
+    "_id": "s04_ar",
+    "_category": "substantive",
+    "_language": "ar",
+    "_sources": [
+      "Egyptian Civil Code, Article 44",
+      "Egyptian Civil Code, Article 46",
+      "Egyptian Civil Code, Article 45"
+    ],
+    "_expected_articles": [
+      44
+    ],
+    "_article_hit": true,
+    "faithfulness": 1.0,
+    "context_precision": 0.9999999999666667,
+    "context_recall": 1.0,
+    "answer_relevancy": 0.7271880426185492
+  },
+  {
+    "user_input": "What does Article 43 say?",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 43]\nA special domicile may be elected for the performance of\na specific legal act.\nThe election of domicile must be evidenced by writing.\nA domicile elected for the performance of a legal act\nshall be deemed to be the domicile in so far as all\nmatters relating to such act are concerned, including the\nprocedure for enforcement by legal means unless the\nelection of domicile is expressly limited to certain special\nacts, excluding others.",
+      "[Egyptian Civil Code, Article 54] (REPEALED -- no longer in force)\n* Articles 54-80 have been repealed by Presidential\nDecree.\nSECTION III\nThe Classification of Things and Property",
+      "[Egyptian Civil Code, Article 599]\nIf, after the lease has expired, the lessee continues to\nenjoy the leased property to the knowledge of and\nwithout objection on the part of the lessor, the lessee is\ndeemed to be renewed upon the same conditions but\nfor an indefinite duration. The lease so renewed is\ngoverned by the provisions of Article 563.\nThe tacit renewal is deemed to be a new lease and not a\nmere prolongation of the original lease. Nevertheless,\nsubject to the rules of publication applicable to real\nproperty, the real securities supplied by the lessee in\nguarantee of the old lease are transferred to the new\nlease. The suretyship, whether personal or real, is not\ntransferred to the new lease unless the surety consents\nthereto."
+    ],
+    "response": "Article 43 states that a special domicile may be elected for the performance of a specific legal act. The election of domicile must be evidenced by writing. A domicile elected for the performance of a legal act shall be deemed to be the domicile in so far as all matters relating to such act are concerned, including the procedure for enforcement by legal means unless the election of domicile is expressly limited to certain special acts, excluding others.",
+    "reference": "It concerns the domicile of a missing or absent person, and the special domicile of a minor who has attained eighteen years for acts they are legally capable of performing.",
+    "_id": "l01_en",
+    "_category": "article_lookup",
+    "_language": "en",
+    "_sources": [
+      "Egyptian Civil Code, Article 43",
+      "Egyptian Civil Code, Article 54",
+      "Egyptian Civil Code, Article 599"
+    ],
+    "_expected_articles": [
+      43
+    ],
+    "_article_hit": true,
+    "faithfulness": 1.0,
+    "context_precision": 0.0,
+    "context_recall": 0.0,
+    "answer_relevancy": 0.7140189056805474
+  },
+  {
+    "user_input": "ما هو نص المادة 52؟",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 52]\nالأشخاص الاعتبارية هي :-\n(١ الدولة وكذلك المديريات والمدن والقرى بالشروط التي يحددها القانون\nوالإدارات والمصالح وغيرها من المنشآت العامة التي يمنحها القانون\nشخصية اعتبارية .\n(٢ الهيئات والطوائف الدينية التي تعترف لها الدولة بشخصية اعتبارية .\n(٣ الأوقاف .\n(٤ الشركات التجارية والمدنية .\n(٥ الجمعيات والمؤسسات المنشأة وفقاً للأحكام التي ستأتي فيما بعد.\n(٦ كل مجموعة من الأشخاص أو الأموال تثبت لها الشخصية الاعتبارية\nبمقتضى نص في القانون.",
+      "[Egyptian Civil Code, Article 54] (REPEALED -- no longer in force)\nألغيت المواد من ٥٤ إلى ٨٠ بالقرار الجمهوري بالقانون رقم ٣٤٨ لسنة",
+      "[Egyptian Civil Code, Article 1108]\nيسرى على رهن الحيازة أحكام المادة ١٠٥٠ المتعلقة بمسئولية الراهن\nغير المدين وأحكام المادة ١٠٥٢ المتعلقة بشرط التملك عند عدم الوفاء\nوشرط البيع دون إجراءات.\n-٢ بالنسبة إلى الغير"
+    ],
+    "response": "نص المادة 52 من القانون المدني المصري هو:\n\nالأشخاص الاعتبارية هي :-\n(١ الدولة وكذلك المديريات والمدن والقرى بالشروط التي يحددها القانون\nوالإدارات والمصالح وغيرها من المنشآت العامة التي يمنحها القانون\nشخصية اعتبارية .\n(٢ الهيئات والطوائف الدينية التي تعترف لها الدولة بشخصية اعتبارية .\n(٣ الأوقاف .\n(٤ الشركات التجارية والمدنية .\n(٥ الجمعيات والمؤسسات المنشأة وفقاً للأحكام التي ستأتي فيما بعد.\n(٦ كل مجموعة من الأشخاص أو الأموال تثبت لها الشخصية الاعتبارية\nبمقتضى نص في القانون.",
+    "reference": "It enumerates juristic persons, including the state, provinces, towns and villages, and other public entities the law grants legal personality.",
+    "_id": "l02_ar",
+    "_category": "article_lookup",
+    "_language": "ar",
+    "_sources": [
+      "Egyptian Civil Code, Article 52",
+      "Egyptian Civil Code, Article 54",
+      "Egyptian Civil Code, Article 1108"
+    ],
+    "_expected_articles": [
+      52
+    ],
+    "_article_hit": true,
+    "faithfulness": 1.0,
+    "context_precision": 0.9999999999,
+    "context_recall": 1.0,
+    "answer_relevancy": 0.6676952598342867
+  },
+  {
+    "user_input": "What does Article 274 say?",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 274]\nAn obligation with a suspensive term only becomes due\non the date of the expiration of the term. The creditor\nmay, however, even before the end of the term, take\nmeasures to protect his rights and may, in particular, ask\nfor security if he fears that the debtor may become\nbankrupt or insolvent, and has reasonable grounds for\nhis fears.\nAt the end of a resolutory term, the obligation is\nextinguished without such extinction having any\nretroactive effect.\nSection II\nPlurality of Objects of an Obligation\n1. Alternative Obligations",
+      "[Egyptian Civil Code, Article 1108]\nThe provisions of Article 1050, relating to the\nresponsibility of a mortgagor who is not a debtor, and\nthe provisions of Article 1052, relating to appropriation\nin case of non-payment and to sale without recourse to\nlegal formalities, apply to pledge.\n2- As Regards Third Parties",
+      "[Egyptian Civil Code, Article 980]\nThe owner to whom the property is restituted must pay\nto the possessor all the expenditure of a necessary kind\nthat he has incurred.\nThe provisions of Articles 924 and 925 shall apply as\nregard expenditure of an advantageous kind.\nIf the expenditure is of a luxurious nature, the possessor\ncannot claim repayment of any of such expenditure. He\nmay, however, remove works he has made, provided he\nrestores the property to its original condition, unless the\nowner prefers to keep the works upon payment of their\nbreak up value."
+    ],
+    "response": "Article 274 states that an obligation with a suspensive term only becomes due on the date of the expiration of the term. The creditor may, however, even before the end of the term, take measures to protect his rights and may, in particular, ask for security if he fears that the debtor may become bankrupt or insolvent, and has reasonable grounds for his fears. At the end of a resolutory term, the obligation is extinguished without such extinction having any retroactive effect.",
+    "reference": "An obligation with a suspensive term becomes due on the date the term expires; before that, the creditor may take measures to protect his rights if he fears the debtor may become insolvent.",
+    "_id": "l03_en",
+    "_category": "article_lookup",
+    "_language": "en",
+    "_sources": [
+      "Egyptian Civil Code, Article 274",
+      "Egyptian Civil Code, Article 1108",
+      "Egyptian Civil Code, Article 980"
+    ],
+    "_expected_articles": [
+      274
+    ],
+    "_article_hit": true,
+    "faithfulness": 1.0,
+    "context_precision": 0.9999999999,
+    "context_recall": 1.0,
+    "answer_relevancy": 0.7321750240480424
+  },
+  {
+    "user_input": "ما محتوى المادة 388؟",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 388]\n(١( لا يجوز الترول عن التقادم قبل ثبوت الحق فيه ، كما لا يجوز الاتفاق\nعلى أن يتم التقادم في مدة تختلف عن المدة التي عليها القانون.\n(٢( وإنما يجوز لكل شخص يملك التصرف في حقوقه أن يترل ولو ضمنا\nعن التقادم بعد ثبوت الحق فيه ، على أن هذا الترول لا ينفذ في حق\nالدائنين إذا صدر إضرارا بهم.",
+      "[Egyptian Civil Code, Article 65] (REPEALED -- no longer in force)\nألغيت المواد من ٥٤ إلى ٨٠ بالقرار الجمهوري بالقانون رقم ٣٤٨ لسنة",
+      "[Egyptian Civil Code, Article 73] (REPEALED -- no longer in force)\nألغيت المواد من ٥٤ إلى ٨٠ بالقرار الجمهوري بالقانون رقم ٣٤٨ لسنة"
+    ],
+    "response": "المادة 388 تنص على أن الترول عن التقادم لا يجوز قبل ثبوت الحق فيه، كما لا يجوز الاتفاق على أن يتم التقادم في مدة تختلف عن المدة التي عليها القانون. كما تنص المادة على أن كل شخص يملك التصرف في حقوقه يمكنه الترول عن التقادم ولو ضمنا بعد ثبوت الحق فيه، على أن هذا الترول لا ينفذ في حق الدائنين إذا صدر إضرارا بهم.",
+    "reference": "A debtor cannot renounce the benefit of prescription before acquiring the right to invoke it, nor agree to a different prescription term than the one fixed by law.",
+    "_id": "l04_ar",
+    "_category": "article_lookup",
+    "_language": "ar",
+    "_sources": [
+      "Egyptian Civil Code, Article 388",
+      "Egyptian Civil Code, Article 65",
+      "Egyptian Civil Code, Article 73"
+    ],
+    "_expected_articles": [
+      388
+    ],
+    "_article_hit": true,
+    "faithfulness": 1.0,
+    "context_precision": 0.9999999999,
+    "context_recall": 1.0,
+    "answer_relevancy": 0.7346758096215172
+  },
+  {
+    "user_input": "Is the law about associations still in force?",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 671]\nThe rates laid down by the public authority will have\nforce of law with regard to contracts entered into\nbetween the concessionaire and consumers; the parties\nshall not have the right to depart therefrom by\nagreement.\nThe rates may be revised or modified. If the rates are\nmodified and such modification is ratified, the new rates\nbecome applicable, but without retroactive effect, from\nthe date fixed for its coming into force by the act of\nratification. Any contracts running (abonnements) at the\ntime of modification of the rates will be subject to the\nincrease or reduction of charges for the period of the\ncontract unexpired at the date of coming into force of\nthe new rates.",
+      "[Egyptian Civil Code, Article 23]\nThe provisions of the preceding articles only apply when\nno provisions to the contrary are included in a special\nlaw or in an International Convention in force in Egypt.",
+      "[Egyptian Civil Code, Article 873]\nRights of fishing and hunting and rights to things found\nand to antiquities are governed by special regulations.\nThe Appropriation of Immovables which have no\nOwner"
+    ],
+    "response": "The provided articles do not contain information about the law regarding associations. Therefore, it is not possible to determine from the given articles whether the law about associations is still in force.",
+    "reference": "No. Articles 54 to 80 on associations were repealed by Presidential Decree Law No. 348 of 1956.",
+    "_id": "r01_en",
+    "_category": "repealed_status",
+    "_language": "en",
+    "_sources": [
+      "Egyptian Civil Code, Article 671",
+      "Egyptian Civil Code, Article 23",
+      "Egyptian Civil Code, Article 873"
+    ],
+    "_expected_articles": [
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60
+    ],
+    "_article_hit": false,
+    "faithfulness": 1.0,
+    "context_precision": 0.49999999995,
+    "context_recall": 0.0,
+    "answer_relevancy": 0.0
+  },
+  {
+    "user_input": "هل ما زالت أحكام الجمعيات سارية؟",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 135]\nإذا كان محل الإلتزام مخالفا للنظام العام أو الآداب كان العقد باطلا.\nالسبب",
+      "[Egyptian Civil Code, Article 671]\n(١( يكون لتعريفات الأسعار قررتها السلطة العامة قوة القانون بالنسبة إلى\nالعقود التى يبرمها الملتزم مع عملائه ، فلا يجوز للمتعاقدين أن يتفقا على\nما يخالفها.\n(٢( ويجوز إعادة النظر فى هذه القوائم وتعديلها .فإذا عدلت الأسعار\nالمعمول بها وصدق على تعديل الأسعار الجديدة دون أثر رجعى من الوقت\nالذى عينه قرار التصديق لسريانها ، وما يكون جارياً وقت التعديل من\nاشتراكات فى المرافق العام يسرى عليه هذا التعديل من زيادة أو نقص فى\nالأجور وذلك فيما بقى من المدة بعد التاريخ المعين لسريان الأسعار الجديدة\n.",
+      "[Egyptian Civil Code, Article 23]\nلا تسري أحكام المواد السابقة إلا حيث لا يوجد نص علي خلاف ذلك في\nقانون خاص أو في معاهدة دولية نافذة في مصر."
+    ],
+    "response": "أحكام الجمعيات تُعتبر سارية ما لم يُنص على خلاف ذلك في قانون خاص أو في معاهدة دولية نافذة في مصر، وفقًا لأحكام المادة 23 من Egyptian Civil Code.",
+    "reference": "No. Articles 54 to 80 on associations were repealed by Presidential Decree Law No. 348 of 1956.",
+    "_id": "r02_ar",
+    "_category": "repealed_status",
+    "_language": "ar",
+    "_sources": [
+      "Egyptian Civil Code, Article 135",
+      "Egyptian Civil Code, Article 671",
+      "Egyptian Civil Code, Article 23"
+    ],
+    "_expected_articles": [
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60
+    ],
+    "_article_hit": false,
+    "faithfulness": 0.0,
+    "context_precision": 0.3333333333,
+    "context_recall": 0.0,
+    "answer_relevancy": 0.594551346093067
+  },
+  {
+    "user_input": "Is Article 65 currently valid law?",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 65] (REPEALED -- no longer in force)\nألغيت المواد من ٥٤ إلى ٨٠ بالقرار الجمهوري بالقانون رقم ٣٤٨ لسنة",
+      "[Egyptian Civil Code, Article 33]\nEgyptian nationality is governed by a special law.",
+      "[Egyptian Civil Code, Article 54] (REPEALED -- no longer in force)\n* Articles 54-80 have been repealed by Presidential\nDecree.\nSECTION III\nThe Classification of Things and Property"
+    ],
+    "response": "No, Article 65 is not currently valid law. It has been repealed, as indicated in the provided articles.",
+    "reference": "No. Article 65 falls within Articles 54-80, which were repealed by Presidential Decree Law No. 348 of 1956.",
+    "_id": "r03_en",
+    "_category": "repealed_status",
+    "_language": "en",
+    "_sources": [
+      "Egyptian Civil Code, Article 65",
+      "Egyptian Civil Code, Article 33",
+      "Egyptian Civil Code, Article 54"
+    ],
+    "_expected_articles": [
+      65
+    ],
+    "_article_hit": true,
+    "faithfulness": 1.0,
+    "context_precision": 0.8333333332916666,
+    "context_recall": 1.0,
+    "answer_relevancy": 1.0
+  },
+  {
+    "user_input": "هل المادة 400 لا تزال نافذة؟",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 400] (REPEALED -- no longer in force)\nالمواد من ٣٨٩ إلى ٤١٧ ملغاة",
+      "[Egyptian Civil Code, Article 451]\nتبقي دعوى الضمان ولو هلك المبيع بأي سبب كان.",
+      "[Egyptian Civil Code, Article 23]\nلا تسري أحكام المواد السابقة إلا حيث لا يوجد نص علي خلاف ذلك في\nقانون خاص أو في معاهدة دولية نافذة في مصر."
+    ],
+    "response": "لا، المادة 400 من القانون المدني المصري لم تعد نافذة، إذ أنها ملغاة حسب المادة 389 إلى 417 من القانون المدني، والتي تُشير إلى أن هذه المواد ملغاة.",
+    "reference": "No. Article 400 falls within Articles 389-417, which were repealed.",
+    "_id": "r04_ar",
+    "_category": "repealed_status",
+    "_language": "ar",
+    "_sources": [
+      "Egyptian Civil Code, Article 400",
+      "Egyptian Civil Code, Article 451",
+      "Egyptian Civil Code, Article 23"
+    ],
+    "_expected_articles": [
+      400
+    ],
+    "_article_hit": true,
+    "faithfulness": 0.3333333333333333,
+    "context_precision": 0.9999999999,
+    "context_recall": 1.0,
+    "answer_relevancy": 0.8089460563371049
+  },
+  {
+    "user_input": "What does Egyptian criminal law say about theft?",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 33]\nEgyptian nationality is governed by a special law.",
+      "[Egyptian Civil Code, Article 25]\nIn the case of a person of unknown nationality or of a\nperson of plural nationality the law to be applied will be\ndecided by the Judge. Egyptian law shall apply, however,\nif a person is deemed in Egypt to be of an Egyptian\nnationality and is at the same time deemed by one or\nmore foreign states to be a national of that or those\nstates.",
+      "[Egyptian Civil Code, Article 21]\nNon-contractual obligations are governed by the law of\nthe State in whose territory the act that gave rise to the\nobligation took place. When, however, the obligation\narises from a tort, the provisions of the preceding\nparagraph shall not apply to an act which occurred\nabroad and which, although considered unlawful in\naccordance with the law of the country in which the act\noccurred, is considered lawful in Egypt."
+    ],
+    "response": "The provided articles do not contain enough information to answer the question about what Egyptian criminal law says about theft.",
+    "reference": "Not covered -- this is the Civil Code, not the Penal Code. The system should decline to answer rather than guess.",
+    "_id": "o01_en",
+    "_category": "out_of_corpus",
+    "_language": "en",
+    "_sources": [
+      "Egyptian Civil Code, Article 33",
+      "Egyptian Civil Code, Article 25",
+      "Egyptian Civil Code, Article 21"
+    ],
+    "_expected_articles": [],
+    "_article_hit": null,
+    "faithfulness": 1.0,
+    "context_precision": 0.5833333333041666,
+    "context_recall": 0.0,
+    "answer_relevancy": 0.0
+  },
+  {
+    "user_input": "ما هو حكم القانون الجنائي المصري في جريمة السرقة؟",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 207]\n( ١ ( إذا التزم المدين أن ينقل حقا عينيا أو أن يقوم بعمل ، وتضمن إلتزامه\nأن يسلم شيئا ولم يقم بتسليمه بعد أن اعذر ، فإن هلاك الشئ يكون عليه\nولو كان الهلاك قبل الاعذار على الدائن.\n( ٢ ( ومع ذلك لا يكون الهلاك على المدين ، ولو اعذر إذا اثبت أن الشئ\nكان يملك كذلك عند الدائن لو انه سلم إليه ، ما لم يكن المدين قد قبل أن\nيتحمل تبعة الحوادث المفاجئة.\n( ٣ ( على أن الشئ المسروق إذا هلك أو ضاع بأية صورة كانت فإن تبعة\nالهلاك تقع على السارق.",
+      "[Egyptian Civil Code, Article 977]\n(١) يجوز لمالك المنقول أو السند الصحيح وحسن النية ما لم يقم الدليل\nعلى عكس ذلك.\n) (٢ فإذا كان من يوجد الشيء المسروق أو الضائع فى حيازته قد اشتراه\nبحسن نية فى سوق أو مزاد على أو اشتراه ممن يتجر فى مثله ، فإن له أن\nيطلب ممن يسترد هذا الشيء أن يجعل له الثمن الذى دفعه\nتملك الثمار بالحيازة",
+      "[Egyptian Civil Code, Article 873]\nالحق فى صيد البحر والبر واللقطة والأشياء الأثرية تنظمه لوائح خاصة.\nالاستيلاء على عقار ليس له مالك"
+    ],
+    "response": "القانون الجنائي المصري لا يُعالج في الأوراق المقدمة بشكل مباشر. لا توجد معلومات كافية في الأحكام المقدمة لتحديد حكم القانون الجنائي المصري في جريمة السرقة.",
+    "reference": "Not covered -- this is the Civil Code, not the Penal Code. The system should decline to answer rather than guess.",
+    "_id": "o02_ar",
+    "_category": "out_of_corpus",
+    "_language": "ar",
+    "_sources": [
+      "Egyptian Civil Code, Article 207",
+      "Egyptian Civil Code, Article 977",
+      "Egyptian Civil Code, Article 873"
+    ],
+    "_expected_articles": [],
+    "_article_hit": null,
+    "faithfulness": 0.0,
+    "context_precision": 0.0,
+    "context_recall": 1.0,
+    "answer_relevancy": 0.0
+  },
+  {
+    "user_input": "What is the minimum wage in Egypt according to this code?",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 33]\nEgyptian nationality is governed by a special law.",
+      "[Egyptian Civil Code, Article 23]\nThe provisions of the preceding articles only apply when\nno provisions to the contrary are included in a special\nlaw or in an International Convention in force in Egypt.",
+      "[Egyptian Civil Code, Article 28]\nThe provisions of a foreign law applicable by virtue of the\npreceding articles shall not be applied if these provisions\nare contrary to public policy or to morality in Egypt.\nSECTION II\nPersons\n1. Individuals"
+    ],
+    "response": "The provided articles do not contain information regarding the minimum wage in Egypt.",
+    "reference": "Not covered -- the Civil Code does not set labor minimum-wage rules. The system should decline to answer rather than guess.",
+    "_id": "o03_en",
+    "_category": "out_of_corpus",
+    "_language": "en",
+    "_sources": [
+      "Egyptian Civil Code, Article 33",
+      "Egyptian Civil Code, Article 23",
+      "Egyptian Civil Code, Article 28"
+    ],
+    "_expected_articles": [],
+    "_article_hit": null,
+    "faithfulness": 1.0,
+    "context_precision": 0.0,
+    "context_recall": 1.0,
+    "answer_relevancy": 0.0
+  },
+  {
+    "user_input": "ما نص المادة 5000؟",
+    "retrieved_contexts": [
+      "[Egyptian Civil Code, Article 933]\nالمنقول الذى لم يتعين إلا بنوعه لا تنتقل ملكيته إلا بإفرازه طبقا للمادة\n.٢٠٥",
+      "[Egyptian Civil Code, Article 1108]\nيسرى على رهن الحيازة أحكام المادة ١٠٥٠ المتعلقة بمسئولية الراهن\nغير المدين وأحكام المادة ١٠٥٢ المتعلقة بشرط التملك عند عدم الوفاء\nوشرط البيع دون إجراءات.\n-٢ بالنسبة إلى الغير",
+      "[Egyptian Civil Code, Article 54] (REPEALED -- no longer in force)\nألغيت المواد من ٥٤ إلى ٨٠ بالقرار الجمهوري بالقانون رقم ٣٤٨ لسنة"
+    ],
+    "response": "المادة 5000 غير موجودة في القائمة المقدمة من مواد القانون المدني المصري.",
+    "reference": "Article 5000 does not exist in this corpus (the code runs from Article 1 to 1149). The system should say so rather than fabricate content.",
+    "_id": "o05_ar",
+    "_category": "out_of_corpus",
+    "_language": "ar",
+    "_sources": [
+      "Egyptian Civil Code, Article 933",
+      "Egyptian Civil Code, Article 1108",
+      "Egyptian Civil Code, Article 54"
+    ],
+    "_expected_articles": [],
+    "_article_hit": null,
+    "faithfulness": 1.0,
+    "context_precision": 0.3333333333,
+    "context_recall": 0.5,
+    "answer_relevancy": 0.7571749710118674
+  }
+]

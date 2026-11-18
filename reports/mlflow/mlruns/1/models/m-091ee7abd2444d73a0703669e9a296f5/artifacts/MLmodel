@@ -1,0 +1,23 @@
+artifact_path: /kaggle/working/repo/mlruns/1/models/m-091ee7abd2444d73a0703669e9a296f5/artifacts
+flavors:
+  python_function:
+    artifacts:
+      params:
+        path: artifacts/params.yaml
+        uri: /tmp/tmp_n7be0kp/params.yaml
+    cloudpickle_version: 3.1.2
+    code: null
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pyfunc.model
+    python_model: python_model.pkl
+    python_version: 3.12.13
+    streamable: false
+mlflow_version: 3.16.1
+model_id: m-091ee7abd2444d73a0703669e9a296f5
+model_size_bytes: 2528
+model_uuid: m-091ee7abd2444d73a0703669e9a296f5
+prompts: null
+run_id: d719268ca73e454e86509a971d755059
+utc_time_created: '2026-10-01 12:34:24.396627'
