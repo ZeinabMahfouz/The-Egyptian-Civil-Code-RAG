@@ -1,0 +1,9 @@
+chunking:
+  dedupe_repealed_ranges: true
+  paragraph_split_threshold_chars: 400
+embedding:
+  batch_size: 32
+  model_name: BAAI/bge-m3
+qdrant:
+  collection_name: egyptian_civil_code
+  storage_path: data/processed/qdrant_storage
